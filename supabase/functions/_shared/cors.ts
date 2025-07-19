@@ -9,6 +9,7 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:8080", // Supabase local development
   "https://midnightprotocol.org",
   "https://www.midnightprotocol.org",
+  "https://midnight-protocol.netlify.app",
 ];
 
 /**
