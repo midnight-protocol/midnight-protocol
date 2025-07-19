@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Debug Vite App",
+      "url": "http://localhost:8080",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "Start Vite Dev Server",
+      "sourceMapPathOverrides": {
+        "/@fs/*": "${webRoot}/*",
+        "/*": "${webRoot}/*"
+      }
+    },
+    {
+      "name": "Debug Supabase Edge Functions",
+      "type": "node",
+      "address": "127.0.0.1",
+      "request": "attach",
+      "port": 8083,
+      "localRoot": "${workspaceFolder}/supabase/functions",
+      "remoteRoot": "/home/deno/functions",
+      "sourceMaps": true,
+      "enableContentValidation": false
+    }
+  ]
+}

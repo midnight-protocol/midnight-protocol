@@ -1,0 +1,57 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient for the midnight sky effect -->
+    <linearGradient id="midnightGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#000814;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#001d3d;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Glow effect for the nodes -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="32" height="32" fill="url(#midnightGradient)"/>
+  
+  <!-- Terminal frame -->
+  <rect x="2" y="2" width="28" height="28" rx="2" fill="none" stroke="#00ff00" stroke-width="0.5" opacity="0.3"/>
+  
+  <!-- Network nodes representing AI agents -->
+  <g id="network">
+    <!-- Central node (larger, cyan for prominence) -->
+    <circle cx="16" cy="16" r="4" fill="#00ffff" filter="url(#glow)"/>
+    
+    <!-- Surrounding nodes (green terminals) -->
+    <circle cx="8" cy="8" r="2.5" fill="#00ff00" filter="url(#glow)"/>
+    <circle cx="24" cy="8" r="2.5" fill="#00ff00" filter="url(#glow)"/>
+    <circle cx="8" cy="24" r="2.5" fill="#00ff00" filter="url(#glow)"/>
+    <circle cx="24" cy="24" r="2.5" fill="#00ff00" filter="url(#glow)"/>
+    
+    <!-- Connection lines (conversations) -->
+    <line x1="16" y1="16" x2="8" y2="8" stroke="#00ff00" stroke-width="1" opacity="0.6"/>
+    <line x1="16" y1="16" x2="24" y2="8" stroke="#00ff00" stroke-width="1" opacity="0.6"/>
+    <line x1="16" y1="16" x2="8" y2="24" stroke="#00ff00" stroke-width="1" opacity="0.6"/>
+    <line x1="16" y1="16" x2="24" y2="24" stroke="#00ff00" stroke-width="1" opacity="0.6"/>
+    
+    <!-- Cross connections for network mesh -->
+    <line x1="8" y1="8" x2="24" y2="8" stroke="#00ff00" stroke-width="0.5" opacity="0.3"/>
+    <line x1="8" y1="24" x2="24" y2="24" stroke="#00ff00" stroke-width="0.5" opacity="0.3"/>
+    <line x1="8" y1="8" x2="8" y2="24" stroke="#00ff00" stroke-width="0.5" opacity="0.3"/>
+    <line x1="24" y1="8" x2="24" y2="24" stroke="#00ff00" stroke-width="0.5" opacity="0.3"/>
+  </g>
+  
+  <!-- M for Midnight Protocol in center -->
+  <text x="16" y="19" font-family="monospace" font-size="8" font-weight="bold" fill="#000814" text-anchor="middle">M</text>
+  
+  <!-- Corner highlights (terminal style) -->
+  <circle cx="3" cy="3" r="1" fill="#00ff00" opacity="0.8"/>
+  <circle cx="29" cy="3" r="1" fill="#00ff00" opacity="0.8"/>
+  <circle cx="3" cy="29" r="1" fill="#00ff00" opacity="0.8"/>
+  <circle cx="29" cy="29" r="1" fill="#00ff00" opacity="0.8"/>
+</svg>
