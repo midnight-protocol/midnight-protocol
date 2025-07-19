@@ -1,19 +1,11 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Settings, Save, RefreshCw, Loader2, Brain } from "lucide-react";
+import { Settings, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { openRouterModelsService } from "@/services/openrouter-models.service";
 import { adminAPIService } from "@/services/admin-api.service";
 
 interface ConfigItem {
@@ -62,15 +54,12 @@ const TextConfigInput = ({
 
 export const SystemConfigPanel = () => {
   const [configs, setConfigs] = useState<ConfigItem[]>([]);
-  const [availableModels, setAvailableModels] = useState<OpenRouterModel[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modelsLoading, setModelsLoading] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
     // Clear cache on component mount to ensure fresh data
     fetchConfigs();
-    fetchModels();
   }, []);
 
   const fetchConfigs = async () => {
@@ -91,19 +80,6 @@ export const SystemConfigPanel = () => {
       toast.error("Failed to load configuration");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchModels = async () => {
-    setModelsLoading(true);
-    try {
-      const models = await openRouterModelsService.getAvailableModels();
-      setAvailableModels(models);
-    } catch (error) {
-      console.error("Error fetching models:", error);
-      toast.error("Failed to load available models");
-    } finally {
-      setModelsLoading(false);
     }
   };
 
@@ -162,108 +138,6 @@ export const SystemConfigPanel = () => {
 
   const getModelConfigByKey = (key: string) => {
     return configs.find((config) => config.config_key === key);
-  };
-
-  const renderModelDropdown = (
-    configKey: string,
-    title: string,
-    description: string
-  ) => {
-    const config = getModelConfigByKey(configKey);
-    if (!config) {
-      console.warn(`⚠️ Config not found for key: ${configKey}`);
-      return (
-        <div className="space-y-3 p-4 bg-terminal-bg/20 rounded border border-red-500/30">
-          <div className="flex items-center gap-2">
-            <Brain className="w-5 h-5 text-red-500" />
-            <div>
-              <h4 className="text-red-500 font-mono text-lg">{title}</h4>
-              <p className="text-terminal-text-muted text-sm">
-                Config key "{configKey}" not found in database
-              </p>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    const currentValue = parseConfigValue(config);
-    const isSaving = saving === config.id;
-
-    return (
-      <div className="space-y-3 p-4 bg-terminal-bg/20 rounded border border-terminal-green/20">
-        <div className="flex items-center gap-2">
-          <Brain className="w-5 h-5 text-terminal-green" />
-          <div>
-            <h4 className="text-terminal-green font-mono text-lg">{title}</h4>
-            <p className="text-terminal-text-muted text-sm">{description}</p>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Select
-            value={
-              typeof currentValue === "string"
-                ? currentValue
-                : String(currentValue)
-            }
-            onValueChange={(selectedValue) =>
-              updateConfig(config.id, selectedValue)
-            }
-            disabled={isSaving || modelsLoading}
-          >
-            <SelectTrigger className="bg-terminal-bg/50 border-terminal-green/30 text-terminal-text">
-              <SelectValue
-                placeholder={
-                  modelsLoading ? "Loading models..." : "Select AI model"
-                }
-              >
-                {currentValue || "Select model..."}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent className="bg-terminal-bg border-terminal-green/30 text-terminal-text max-h-96 z-50">
-              {modelsLoading ? (
-                <SelectItem value="loading" disabled>
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Loading models...
-                  </div>
-                </SelectItem>
-              ) : (
-                availableModels.map((model) => (
-                  <SelectItem
-                    key={model.id}
-                    value={model.id}
-                    className="hover:bg-terminal-green/10"
-                  >
-                    <div className="flex flex-col">
-                      <span className="font-mono text-sm">{model.id}</span>
-                      <span className="text-xs text-terminal-text-muted">
-                        {model.name}
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-
-          <div className="text-xs text-terminal-text-muted">
-            Current:{" "}
-            {typeof currentValue === "string"
-              ? currentValue
-              : JSON.stringify(currentValue)}
-          </div>
-
-          {isSaving && (
-            <div className="flex items-center gap-2 text-sm text-terminal-green">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Updating...
-            </div>
-          )}
-        </div>
-      </div>
-    );
   };
 
   const renderOtherConfigInput = (config: ConfigItem) => {
@@ -360,20 +234,6 @@ export const SystemConfigPanel = () => {
           </CardTitle>
           <div className="flex gap-2">
             <Button
-              onClick={fetchModels}
-              variant="outline"
-              size="sm"
-              className="border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-bg"
-              disabled={modelsLoading}
-            >
-              {modelsLoading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              Refresh Models
-            </Button>
-            <Button
               onClick={() => {
                 fetchConfigs();
               }}
@@ -388,33 +248,6 @@ export const SystemConfigPanel = () => {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* AI Model Configuration Section */}
-        <div className="space-y-4">
-          <h3 className="text-terminal-green font-mono text-xl border-b border-terminal-green/30 pb-2">
-            AI Model Configuration
-          </h3>
-
-          <div className="grid gap-4">
-            {renderModelDropdown(
-              "ai_model_onboarding",
-              "Onboarding Model",
-              "AI model used for user onboarding conversations and essence extraction"
-            )}
-
-            {renderModelDropdown(
-              "ai_model_conversation",
-              "Agent Conversation Model",
-              "AI model used for agent-to-agent networking conversations"
-            )}
-
-            {renderModelDropdown(
-              "ai_model_reporting",
-              "Report Generation Model",
-              "AI model used for generating morning reports and summaries"
-            )}
-          </div>
-        </div>
-
         {/* Other Configuration Sections */}
         {Object.entries(groupedConfigs).map(([category, categoryConfigs]) => (
           <div key={category} className="space-y-3">

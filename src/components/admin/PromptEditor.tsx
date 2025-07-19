@@ -8,11 +8,36 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { adminAPIService } from "@/services/admin-api.service";
 import { toast } from "sonner";
-import { Edit, Save, X, History, Code, Play, Plus, Download, Upload, Trash2, RotateCcw } from "lucide-react";
+import {
+  Edit,
+  Save,
+  X,
+  History,
+  Code,
+  Play,
+  Plus,
+  Download,
+  Upload,
+  Trash2,
+  RotateCcw,
+} from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface PromptTemplate {
@@ -41,7 +66,7 @@ interface PromptVersion {
 
 interface AdditionalMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
 }
 
@@ -87,18 +112,6 @@ const DEFAULT_VALUES: Record<string, Record<string, string>> = {
       "React expertise, TypeScript, Performance optimization, Component architecture",
   },
 
-  // Story summary defaults
-  story_summary_generator: {
-    narrative:
-      "I'm a data scientist turned entrepreneur, building AI tools that help small businesses automate their operations. Previously worked at Google and Microsoft on large-scale ML systems.",
-    currentFocus:
-      "AI automation tools, Small business solutions, No-code platforms",
-    seekingConnections:
-      "Small business owners, SaaS founders, Angel investors, Marketing experts",
-    offeringExpertise:
-      "Machine learning, Data analysis, Product development, Python programming",
-  },
-
   // Agent interview defaults
   agent_interview_onboarding_v2: {
     agentName: "Midnight",
@@ -122,24 +135,6 @@ const DEFAULT_VALUES: Record<string, Record<string, string>> = {
     conversationContent:
       "Emma: Hi Raj! I'm working on a new productivity app and looking for a technical co-founder.\nRaj: That sounds interesting! Tell me more about your vision.\nEmma: It's an AI-powered task manager that learns from user behavior. We have 500 beta users already.\nRaj: Impressive traction! I've been looking to join an early-stage startup. What's your tech stack?\nEmma: Currently using Next.js and Supabase. We need someone to own the technical architecture.\nRaj: Perfect, those are my specialties! Let's schedule a call to discuss further.",
   },
-
-  // Outcome analysis defaults
-  outcome_analysis_detailed: {
-    userAHandle: "@lisa_founder",
-    userBHandle: "@tom_investor",
-    conversationTurns:
-      "Lisa: Looking for seed funding for my edtech startup\nTom: Tell me about your traction\nLisa: 10k active users, 20% MoM growth\nTom: Impressive! What's your monetization strategy?",
-    predictedScore: "0.85",
-    predictedOutcome: "STRONG_MATCH",
-    predictedOpportunities:
-      "Potential investment, Advisory relationship, Network introductions",
-  },
-
-  // Onboarding story extraction defaults (JSON response)
-  onboarding_story_extraction: {
-    // This prompt expects JSON response, so we can leave the defaults empty
-    // as they will be extracted from the conversation
-  },
 };
 
 export const PromptEditor = () => {
@@ -157,7 +152,9 @@ export const PromptEditor = () => {
   const [runResult, setRunResult] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [previewModel, setPreviewModel] = useState<string | null>(null);
-  const [previewTemperature, setPreviewTemperature] = useState<number | null>(null);
+  const [previewTemperature, setPreviewTemperature] = useState<number | null>(
+    null
+  );
   const [creatingTemplate, setCreatingTemplate] = useState(false);
   const [newTemplate, setNewTemplate] = useState<Partial<PromptTemplate>>({
     name: "",
@@ -170,8 +167,12 @@ export const PromptEditor = () => {
   });
   const [importFile, setImportFile] = useState<File | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
-  const [conflictStrategy, setConflictStrategy] = useState<'skip' | 'overwrite' | 'rename'>('skip');
-  const [additionalMessages, setAdditionalMessages] = useState<AdditionalMessage[]>([]);
+  const [conflictStrategy, setConflictStrategy] = useState<
+    "skip" | "overwrite" | "rename"
+  >("skip");
+  const [additionalMessages, setAdditionalMessages] = useState<
+    AdditionalMessage[]
+  >([]);
 
   // Fetch templates using React Query
   const { data: templates = [], isLoading } = useQuery({
@@ -291,11 +292,13 @@ export const PromptEditor = () => {
     onSuccess: (exportData) => {
       // Create and download JSON file
       const dataStr = JSON.stringify(exportData, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const dataBlob = new Blob([dataStr], { type: "application/json" });
       const url = URL.createObjectURL(dataBlob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `prompt-templates-export-${new Date().toISOString().split('T')[0]}.json`;
+      link.download = `prompt-templates-export-${
+        new Date().toISOString().split("T")[0]
+      }.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -310,14 +313,23 @@ export const PromptEditor = () => {
 
   // Import templates mutation
   const importTemplateMutation = useMutation({
-    mutationFn: async ({ importData, conflictStrategy }: { importData: any; conflictStrategy: 'skip' | 'overwrite' | 'rename' }) => {
-      return adminAPIService.importPromptTemplates(importData, conflictStrategy);
+    mutationFn: async ({
+      importData,
+      conflictStrategy,
+    }: {
+      importData: any;
+      conflictStrategy: "skip" | "overwrite" | "rename";
+    }) => {
+      return adminAPIService.importPromptTemplates(
+        importData,
+        conflictStrategy
+      );
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["prompt-templates"] });
       setShowImportDialog(false);
       setImportFile(null);
-      
+
       let message = `Import complete: ${result.imported} imported`;
       if (result.skipped > 0) message += `, ${result.skipped} skipped`;
       if (result.errors.length > 0) {
@@ -329,7 +341,7 @@ export const PromptEditor = () => {
         });
       }
       toast.success(message);
-      
+
       // Log full result for debugging
       console.log("Import result:", result);
     },
@@ -363,8 +375,11 @@ export const PromptEditor = () => {
     if (!editingTemplate) return;
 
     // Validate temperature
-    if (editingTemplate.default_temperature !== undefined && 
-        (editingTemplate.default_temperature < 0 || editingTemplate.default_temperature > 2)) {
+    if (
+      editingTemplate.default_temperature !== undefined &&
+      (editingTemplate.default_temperature < 0 ||
+        editingTemplate.default_temperature > 2)
+    ) {
       toast.error("Temperature must be between 0.0 and 2.0");
       return;
     }
@@ -408,8 +423,11 @@ export const PromptEditor = () => {
     }
 
     // Validate temperature
-    if (newTemplate.default_temperature !== undefined && 
-        (newTemplate.default_temperature < 0 || newTemplate.default_temperature > 2)) {
+    if (
+      newTemplate.default_temperature !== undefined &&
+      (newTemplate.default_temperature < 0 ||
+        newTemplate.default_temperature > 2)
+    ) {
       toast.error("Temperature must be between 0.0 and 2.0");
       return;
     }
@@ -462,7 +480,7 @@ export const PromptEditor = () => {
     try {
       const fileContent = await importFile.text();
       const importData = JSON.parse(fileContent);
-      
+
       // Basic validation
       if (!importData.templates || !Array.isArray(importData.templates)) {
         toast.error("Invalid file format: templates array is required");
@@ -515,21 +533,25 @@ export const PromptEditor = () => {
         // Use preview model if set, otherwise falls back to template model
         model: previewModel || undefined,
         // Use preview temperature if set, otherwise falls back to template default
-        temperature: previewTemperature ?? selectedTemplate.default_temperature ?? undefined,
+        temperature:
+          previewTemperature ??
+          selectedTemplate.default_temperature ??
+          undefined,
         // Include additional messages if any
-        additionalMessages: additionalMessages.length > 0 ? additionalMessages : undefined,
+        additionalMessages:
+          additionalMessages.length > 0 ? additionalMessages : undefined,
       });
 
       setRunResult(response.response);
-      
+
       // Add the response as an assistant message
       const assistantMessage: AdditionalMessage = {
         id: Date.now().toString(),
-        role: 'assistant',
-        content: response.response
+        role: "assistant",
+        content: response.response,
       };
-      setAdditionalMessages(prev => [...prev, assistantMessage]);
-      
+      setAdditionalMessages((prev) => [...prev, assistantMessage]);
+
       toast.success("Prompt executed successfully");
 
       // Show model info if different from template
@@ -538,13 +560,22 @@ export const PromptEditor = () => {
       }
 
       // Show temperature info if different from template
-      if (previewTemperature !== null && previewTemperature !== selectedTemplate.default_temperature) {
-        toast.info(`Used temperature: ${previewTemperature} (template default: ${selectedTemplate.default_temperature ?? 0.2})`);
+      if (
+        previewTemperature !== null &&
+        previewTemperature !== selectedTemplate.default_temperature
+      ) {
+        toast.info(
+          `Used temperature: ${previewTemperature} (template default: ${
+            selectedTemplate.default_temperature ?? 0.2
+          })`
+        );
       }
 
       // Show info about additional messages
       if (additionalMessages.length > 0) {
-        toast.info(`Included ${additionalMessages.length} additional message(s)`);
+        toast.info(
+          `Included ${additionalMessages.length} additional message(s)`
+        );
       }
 
       // Show a warning if editing
@@ -630,38 +661,42 @@ export const PromptEditor = () => {
   const addAdditionalMessage = () => {
     const newMessage: AdditionalMessage = {
       id: Date.now().toString(),
-      role: 'user',
-      content: ''
+      role: "user",
+      content: "",
     };
-    setAdditionalMessages(prev => [...prev, newMessage]);
+    setAdditionalMessages((prev) => [...prev, newMessage]);
   };
 
   const removeAdditionalMessage = (id: string) => {
-    setAdditionalMessages(prev => prev.filter(msg => msg.id !== id));
+    setAdditionalMessages((prev) => prev.filter((msg) => msg.id !== id));
   };
 
-  const updateAdditionalMessage = (id: string, field: keyof AdditionalMessage, value: string) => {
-    setAdditionalMessages(prev => prev.map(msg => 
-      msg.id === id ? { ...msg, [field]: value } : msg
-    ));
+  const updateAdditionalMessage = (
+    id: string,
+    field: keyof AdditionalMessage,
+    value: string
+  ) => {
+    setAdditionalMessages((prev) =>
+      prev.map((msg) => (msg.id === id ? { ...msg, [field]: value } : msg))
+    );
   };
 
   const resetToInitialState = () => {
     if (!selectedTemplate) return;
-    
+
     // Reset to default values
     loadDefaultValuesForTemplate(selectedTemplate);
-    
+
     // Clear additional messages
     setAdditionalMessages([]);
-    
+
     // Clear run result
     setRunResult(null);
-    
+
     // Reset preview overrides
     setPreviewModel(null);
     setPreviewTemperature(null);
-    
+
     toast.success("Reset to initial state");
   };
 
@@ -693,7 +728,9 @@ export const PromptEditor = () => {
                 className="border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg"
               >
                 <Download className="w-4 h-4 mr-1" />
-                {exportTemplateMutation.isPending ? "Exporting..." : "Export All"}
+                {exportTemplateMutation.isPending
+                  ? "Exporting..."
+                  : "Export All"}
               </Button>
               <Button
                 size="sm"
@@ -807,7 +844,10 @@ export const PromptEditor = () => {
                       <Input
                         value={newTemplate.name || ""}
                         onChange={(e) =>
-                          setNewTemplate((prev) => ({ ...prev, name: e.target.value }))
+                          setNewTemplate((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
                         }
                         className="bg-terminal-bg border-terminal-cyan/30"
                         placeholder="e.g., my_new_prompt_template"
@@ -819,7 +859,10 @@ export const PromptEditor = () => {
                       <Input
                         value={newTemplate.description || ""}
                         onChange={(e) =>
-                          setNewTemplate((prev) => ({ ...prev, description: e.target.value }))
+                          setNewTemplate((prev) => ({
+                            ...prev,
+                            description: e.target.value,
+                          }))
                         }
                         className="bg-terminal-bg border-terminal-cyan/30"
                         placeholder="Brief description of this prompt template"
@@ -831,7 +874,10 @@ export const PromptEditor = () => {
                       <Textarea
                         value={newTemplate.template_text || ""}
                         onChange={(e) =>
-                          setNewTemplate((prev) => ({ ...prev, template_text: e.target.value }))
+                          setNewTemplate((prev) => ({
+                            ...prev,
+                            template_text: e.target.value,
+                          }))
                         }
                         rows={15}
                         className="bg-terminal-bg border-terminal-cyan/30 font-mono text-sm"
@@ -843,9 +889,15 @@ export const PromptEditor = () => {
                       <div>
                         <Label>LLM Model</Label>
                         <SearchableSelect
-                          value={newTemplate.llm_model || "anthropic/claude-3-5-sonnet-20241022"}
+                          value={
+                            newTemplate.llm_model ||
+                            "anthropic/claude-3-5-sonnet-20241022"
+                          }
                           onValueChange={(value) =>
-                            setNewTemplate((prev) => ({ ...prev, llm_model: value }))
+                            setNewTemplate((prev) => ({
+                              ...prev,
+                              llm_model: value,
+                            }))
                           }
                           options={
                             availableModels.length > 0
@@ -855,7 +907,8 @@ export const PromptEditor = () => {
                                 }))
                               : [
                                   {
-                                    value: "anthropic/claude-3-5-sonnet-20241022",
+                                    value:
+                                      "anthropic/claude-3-5-sonnet-20241022",
                                     label: "Claude 3.5 Sonnet",
                                   },
                                   {
@@ -886,9 +939,10 @@ export const PromptEditor = () => {
                           step="0.1"
                           value={newTemplate.default_temperature || 0.2}
                           onChange={(e) =>
-                            setNewTemplate((prev) => ({ 
-                              ...prev, 
-                              default_temperature: parseFloat(e.target.value) || 0.2 
+                            setNewTemplate((prev) => ({
+                              ...prev,
+                              default_temperature:
+                                parseFloat(e.target.value) || 0.2,
                             }))
                           }
                           className="bg-terminal-bg border-terminal-cyan/30"
@@ -901,7 +955,10 @@ export const PromptEditor = () => {
                           id="json-response-new"
                           checked={newTemplate.is_json_response || false}
                           onCheckedChange={(checked) =>
-                            setNewTemplate((prev) => ({ ...prev, is_json_response: !!checked }))
+                            setNewTemplate((prev) => ({
+                              ...prev,
+                              is_json_response: !!checked,
+                            }))
                           }
                         />
                         <Label
@@ -919,7 +976,10 @@ export const PromptEditor = () => {
                         <Textarea
                           value={newTemplate.json_schema || ""}
                           onChange={(e) =>
-                            setNewTemplate((prev) => ({ ...prev, json_schema: e.target.value }))
+                            setNewTemplate((prev) => ({
+                              ...prev,
+                              json_schema: e.target.value,
+                            }))
                           }
                           rows={10}
                           className="bg-terminal-bg border-terminal-cyan/30 font-mono text-xs"
@@ -933,12 +993,19 @@ export const PromptEditor = () => {
                       <div className="flex flex-wrap gap-2 mt-2">
                         {(() => {
                           const templateText = newTemplate.template_text || "";
-                          const variableMatches = templateText.match(/{{(\w+)}}/g) || [];
+                          const variableMatches =
+                            templateText.match(/{{(\w+)}}/g) || [];
                           const detectedVars = [
-                            ...new Set(variableMatches.map((m: string) => m.slice(2, -2))),
+                            ...new Set(
+                              variableMatches.map((m: string) => m.slice(2, -2))
+                            ),
                           ];
                           return detectedVars.map((variable: string) => (
-                            <Badge key={variable} variant="outline" className="font-mono">
+                            <Badge
+                              key={variable}
+                              variant="outline"
+                              className="font-mono"
+                            >
                               {variable}
                             </Badge>
                           ));
@@ -949,11 +1016,17 @@ export const PromptEditor = () => {
                     <div className="flex gap-2">
                       <Button
                         onClick={handleCreateTemplate}
-                        disabled={!newTemplate.name || !newTemplate.template_text || createTemplateMutation.isPending}
+                        disabled={
+                          !newTemplate.name ||
+                          !newTemplate.template_text ||
+                          createTemplateMutation.isPending
+                        }
                         className="bg-terminal-green text-terminal-bg hover:bg-terminal-cyan"
                       >
                         <Save className="w-4 h-4 mr-1" />
-                        {createTemplateMutation.isPending ? "Creating..." : "Create Template"}
+                        {createTemplateMutation.isPending
+                          ? "Creating..."
+                          : "Create Template"}
                       </Button>
                     </div>
                   </div>
@@ -1118,10 +1191,13 @@ export const PromptEditor = () => {
                               }
                               onChange={(e) =>
                                 setEditingTemplate((prev) =>
-                                  prev ? { 
-                                    ...prev, 
-                                    default_temperature: parseFloat(e.target.value) || 0.2 
-                                  } : null
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        default_temperature:
+                                          parseFloat(e.target.value) || 0.2,
+                                      }
+                                    : null
                                 )
                               }
                               className="bg-terminal-bg border-terminal-cyan/30"
@@ -1326,10 +1402,14 @@ export const PromptEditor = () => {
                           value={previewTemperature ?? ""}
                           onChange={(e) => {
                             const value = e.target.value;
-                            setPreviewTemperature(value === "" ? null : parseFloat(value) || 0.2);
+                            setPreviewTemperature(
+                              value === "" ? null : parseFloat(value) || 0.2
+                            );
                           }}
                           className="bg-terminal-bg border-terminal-cyan/30"
-                          placeholder={`Template default: ${selectedTemplate.default_temperature ?? 0.2}`}
+                          placeholder={`Template default: ${
+                            selectedTemplate.default_temperature ?? 0.2
+                          }`}
                         />
                       </div>
                     </div>
@@ -1365,7 +1445,8 @@ export const PromptEditor = () => {
                           Additional Messages
                           {additionalMessages.length > 0 && (
                             <span className="text-terminal-text-muted text-xs ml-2">
-                              ({additionalMessages.length} message{additionalMessages.length !== 1 ? 's' : ''})
+                              ({additionalMessages.length} message
+                              {additionalMessages.length !== 1 ? "s" : ""})
                             </span>
                           )}
                         </Label>
@@ -1380,11 +1461,14 @@ export const PromptEditor = () => {
                           Add Message
                         </Button>
                       </div>
-                      
+
                       {additionalMessages.length > 0 && (
                         <div className="space-y-3">
                           {additionalMessages.map((message, index) => (
-                            <div key={message.id} className="p-4 border border-terminal-cyan/30 rounded space-y-3">
+                            <div
+                              key={message.id}
+                              className="p-4 border border-terminal-cyan/30 rounded space-y-3"
+                            >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <Label className="text-terminal-text-muted text-xs">
@@ -1392,8 +1476,14 @@ export const PromptEditor = () => {
                                   </Label>
                                   <Select
                                     value={message.role}
-                                    onValueChange={(value: 'user' | 'assistant') => 
-                                      updateAdditionalMessage(message.id, 'role', value)
+                                    onValueChange={(
+                                      value: "user" | "assistant"
+                                    ) =>
+                                      updateAdditionalMessage(
+                                        message.id,
+                                        "role",
+                                        value
+                                      )
                                     }
                                   >
                                     <SelectTrigger className="w-32 h-8 bg-terminal-bg border-terminal-cyan/30">
@@ -1401,7 +1491,9 @@ export const PromptEditor = () => {
                                     </SelectTrigger>
                                     <SelectContent className="bg-terminal-bg border-terminal-cyan/30">
                                       <SelectItem value="user">User</SelectItem>
-                                      <SelectItem value="assistant">Assistant</SelectItem>
+                                      <SelectItem value="assistant">
+                                        Assistant
+                                      </SelectItem>
                                     </SelectContent>
                                   </Select>
                                 </div>
@@ -1409,7 +1501,9 @@ export const PromptEditor = () => {
                                   type="button"
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => removeAdditionalMessage(message.id)}
+                                  onClick={() =>
+                                    removeAdditionalMessage(message.id)
+                                  }
                                   className="border-red-500/30 text-red-400 hover:bg-red-500/20"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -1417,8 +1511,12 @@ export const PromptEditor = () => {
                               </div>
                               <Textarea
                                 value={message.content}
-                                onChange={(e) => 
-                                  updateAdditionalMessage(message.id, 'content', e.target.value)
+                                onChange={(e) =>
+                                  updateAdditionalMessage(
+                                    message.id,
+                                    "content",
+                                    e.target.value
+                                  )
                                 }
                                 placeholder={`Enter ${message.role} message content...`}
                                 className="bg-terminal-bg border-terminal-cyan/30 min-h-[80px] resize-y"
@@ -1427,10 +1525,12 @@ export const PromptEditor = () => {
                           ))}
                         </div>
                       )}
-                      
+
                       {additionalMessages.length === 0 && (
                         <div className="text-terminal-text-muted text-sm text-center py-4 border border-dashed border-terminal-cyan/30 rounded">
-                          No additional messages. Click "Add Message" to include extra context, or run a prompt to automatically add the response.
+                          No additional messages. Click "Add Message" to include
+                          extra context, or run a prompt to automatically add
+                          the response.
                         </div>
                       )}
                     </div>
@@ -1441,24 +1541,30 @@ export const PromptEditor = () => {
                         <div className="bg-terminal-bg p-4 rounded border border-terminal-cyan/30 mt-2">
                           <div className="space-y-4">
                             <div>
-                              <div className="text-terminal-yellow text-xs mb-2 font-mono">SYSTEM MESSAGE:</div>
+                              <div className="text-terminal-yellow text-xs mb-2 font-mono">
+                                SYSTEM MESSAGE:
+                              </div>
                               <pre className="text-terminal-text text-sm whitespace-pre-wrap font-mono text-left">
                                 {renderPreview()}
                               </pre>
                             </div>
-                            
+
                             {additionalMessages.length > 0 && (
                               <div className="space-y-3">
                                 <div className="text-terminal-yellow text-xs font-mono border-t border-terminal-cyan/30 pt-3">
                                   ADDITIONAL MESSAGES:
                                 </div>
                                 {additionalMessages.map((message, index) => (
-                                  <div key={message.id} className="border-l-2 border-terminal-cyan/50 pl-3">
+                                  <div
+                                    key={message.id}
+                                    className="border-l-2 border-terminal-cyan/50 pl-3"
+                                  >
                                     <div className="text-terminal-green text-xs mb-1 font-mono uppercase">
                                       {message.role}:
                                     </div>
                                     <pre className="text-terminal-text text-sm whitespace-pre-wrap font-mono text-left">
-                                      {message.content || `[Empty ${message.role} message]`}
+                                      {message.content ||
+                                        `[Empty ${message.role} message]`}
                                     </pre>
                                   </div>
                                 ))}
@@ -1551,7 +1657,9 @@ export const PromptEditor = () => {
       <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
         <DialogContent className="bg-terminal-bg border-terminal-cyan/30">
           <DialogHeader>
-            <DialogTitle className="text-terminal-cyan font-mono">Import Prompt Templates</DialogTitle>
+            <DialogTitle className="text-terminal-cyan font-mono">
+              Import Prompt Templates
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -1565,7 +1673,8 @@ export const PromptEditor = () => {
               />
               {importFile && (
                 <p className="text-sm text-terminal-text-muted mt-1">
-                  Selected: {importFile.name} ({Math.round(importFile.size / 1024)}KB)
+                  Selected: {importFile.name} (
+                  {Math.round(importFile.size / 1024)}KB)
                 </p>
               )}
             </div>
@@ -1574,11 +1683,22 @@ export const PromptEditor = () => {
               <Label>Conflict Resolution Strategy</Label>
               <SearchableSelect
                 value={conflictStrategy}
-                onValueChange={(value) => setConflictStrategy(value as 'skip' | 'overwrite' | 'rename')}
+                onValueChange={(value) =>
+                  setConflictStrategy(value as "skip" | "overwrite" | "rename")
+                }
                 options={[
-                  { value: 'skip', label: 'Skip - Ignore templates that already exist' },
-                  { value: 'rename', label: 'Rename - Add suffix to imported templates' },
-                  { value: 'overwrite', label: 'Overwrite - Replace existing templates' },
+                  {
+                    value: "skip",
+                    label: "Skip - Ignore templates that already exist",
+                  },
+                  {
+                    value: "rename",
+                    label: "Rename - Add suffix to imported templates",
+                  },
+                  {
+                    value: "overwrite",
+                    label: "Overwrite - Replace existing templates",
+                  },
                 ]}
                 className="bg-terminal-bg border-terminal-cyan/30"
               />

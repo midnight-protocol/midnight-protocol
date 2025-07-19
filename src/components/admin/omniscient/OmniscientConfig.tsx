@@ -126,66 +126,8 @@ const OmniscientConfig = () => {
           const rawValue = String(config.config_value);
           const value = rawValue.replace(/^"|"$/g, ""); // Remove quotes if present
 
-          switch (config.config_key) {
-            case "omniscient_matching_batch_size":
-              newConfig.batchSize = parseInt(value) || 200;
-              break;
-            case "omniscient_conversations_per_user_per_day":
-              newConfig.maxConversationsPerDay = parseInt(value) || 3;
-              break;
-            case "omniscient_conversation_model":
-              newConfig.conversationModel = value;
-              break;
-            case "omniscient_reporting_model":
-              newConfig.summaryModel = value;
-              break;
-            // Omniscient-specific configs (may not exist yet)
-            case "omniscient_analysis_model":
-              newConfig.analysisModel = value;
-              break;
-            case "omniscient_min_opportunity_score":
-              newConfig.minOpportunityScore = parseFloat(value) || 0.7;
-              break;
-            case "omniscient_enable_intelligent_matching":
-              newConfig.enableIntelligentMatching = value === "true";
-              break;
-            case "omniscient_enable_auto_scheduling":
-              newConfig.enableAutoScheduling = value === "true";
-              break;
-            case "omniscient_schedule_buffer_hours":
-              newConfig.scheduleBufferHours = parseInt(value) || 2;
-              break;
-            case "omniscient_max_concurrent_conversations":
-              newConfig.maxConcurrentConversations = parseInt(value) || 5;
-              break;
-            case "omniscient_conversation_timeout":
-              newConfig.conversationTimeout = parseInt(value) || 600;
-              break;
-            case "omniscient_min_quality_score":
-              newConfig.minQualityScore = parseFloat(value) || 0.6;
-              break;
-            case "omniscient_enable_quality_filtering":
-              newConfig.enableQualityFiltering = value === "true";
-              break;
-            case "omniscient_retry_failed_conversations":
-              newConfig.retryFailedConversations = value === "true";
-              break;
-            case "omniscient_max_retries":
-              newConfig.maxRetries = parseInt(value) || 2;
-              break;
-            case "omniscient_enable_realtime_monitoring":
-              newConfig.enableRealTimeMonitoring = value === "true";
-              break;
-            case "omniscient_log_level":
-              newConfig.logLevel = value || "info";
-              break;
-            case "omniscient_enable_debug_mode":
-              newConfig.enableDebugMode = value === "true";
-              break;
-            case "omniscient_rate_limit_per_minute":
-              newConfig.rateLimitPerMinute = parseInt(value) || 60;
-              break;
-          }
+          // switch (config.config_key) {
+          // }
         });
 
       setConfig(newConfig);
@@ -204,63 +146,7 @@ const OmniscientConfig = () => {
       const updates: Array<{ id: string; value: any }> = [];
 
       // Map config changes to database updates
-      const configMappings = [
-        { key: "omniscient_matching_batch_size", value: config.batchSize },
-        {
-          key: "omniscient_conversations_per_user_per_day",
-          value: config.maxConversationsPerDay,
-        },
-        {
-          key: "omniscient_conversation_model",
-          value: config.conversationModel,
-        },
-        { key: "omniscient_reporting_model", value: config.summaryModel },
-        { key: "omniscient_analysis_model", value: config.analysisModel },
-        {
-          key: "omniscient_min_opportunity_score",
-          value: config.minOpportunityScore,
-        },
-        {
-          key: "omniscient_enable_intelligent_matching",
-          value: config.enableIntelligentMatching,
-        },
-        {
-          key: "omniscient_enable_auto_scheduling",
-          value: config.enableAutoScheduling,
-        },
-        {
-          key: "omniscient_schedule_buffer_hours",
-          value: config.scheduleBufferHours,
-        },
-        {
-          key: "omniscient_max_concurrent_conversations",
-          value: config.maxConcurrentConversations,
-        },
-        {
-          key: "omniscient_conversation_timeout",
-          value: config.conversationTimeout,
-        },
-        { key: "omniscient_min_quality_score", value: config.minQualityScore },
-        {
-          key: "omniscient_enable_quality_filtering",
-          value: config.enableQualityFiltering,
-        },
-        {
-          key: "omniscient_retry_failed_conversations",
-          value: config.retryFailedConversations,
-        },
-        { key: "omniscient_max_retries", value: config.maxRetries },
-        {
-          key: "omniscient_enable_realtime_monitoring",
-          value: config.enableRealTimeMonitoring,
-        },
-        { key: "omniscient_log_level", value: config.logLevel },
-        { key: "omniscient_enable_debug_mode", value: config.enableDebugMode },
-        {
-          key: "omniscient_rate_limit_per_minute",
-          value: config.rateLimitPerMinute,
-        },
-      ];
+      const configMappings = [];
 
       for (const mapping of configMappings) {
         if (configMap[mapping.key]) {

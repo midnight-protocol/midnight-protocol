@@ -19,7 +19,7 @@ This document tracks all hardcoded prompts found in the codebase that need to be
 - **Variables**: `agentName`, `communicationStyle`
 - **Usage**: Main system prompt for onboarding conversations
 
-### 2. Onboarding Story Extraction Instructions
+### 2. Onboarding Story Extraction Instructions [COMPLETE - merged with 1]
 
 - **File**: `/supabase/functions/openrouter-chat/index.ts`
 - **Line**: Appended to system prompt during onboarding
@@ -27,7 +27,7 @@ This document tracks all hardcoded prompts found in the codebase that need to be
 - **Variables**: None
 - **Usage**: Extracts structured story data from conversations
 
-### 3. Omniscient Analysis Prompt
+### 3. Omniscient Analysis Prompt [Prompt itself needs update, missing fields]
 
 - **File**: `/supabase/functions/omniscient-system/omniscientAnalysis.ts`
 - **Function**: `analyzeCollaborationPotential()`
@@ -37,7 +37,7 @@ This document tracks all hardcoded prompts found in the codebase that need to be
 
 ### 4. Agent Conversation Prompt
 
-- **File**: `/supabase/functions/omniscient-system/actions/execute-conversation.ts`
+- **File**: `/supabase/functions/omniscient-system/actions/execute-conversation.ts [COMPLETE - will deprecate probably]
 - **Function**: Inside conversation execution logic
 - **Template Name**: `agent_conversation_enhanced_v2`
 - **Variables**: `agentName`, `userHandle`, `narrative`, `currentFocus`, `seekingConnections`, `offeringExpertise`, `otherUserHandle`, `turnNumber`, `contextPrompt`, `conversationHistory`
@@ -45,7 +45,7 @@ This document tracks all hardcoded prompts found in the codebase that need to be
 
 ### 5. Conversation Summary Prompt
 
-- **File**: `/supabase/functions/omniscient-system/actions/execute-conversation.ts`
+- **File**: `/supabase/functions/omniscient-system/actions/execute-conversation.ts` [COMPLETE - will deprecate probably]
 - **Function**: At the end of conversation execution
 - **Template Name**: `conversation_summary_analysis`
 - **Variables**: `userAHandle`, `userBHandle`, `conversationContent`
@@ -61,7 +61,7 @@ This document tracks all hardcoded prompts found in the codebase that need to be
 
 ### 7. Story Summary Generator
 
-- **File**: `/supabase/functions/generate-story-summary/index.ts`
+- **File**: `/supabase/functions/generate-story-summary/index.ts` [DEPRECATED]
 - **Function**: Main function body
 - **Template Name**: `story_summary_generator`
 - **Variables**: `narrative`, `currentFocus`, `seekingConnections`, `offeringExpertise`
@@ -69,7 +69,7 @@ This document tracks all hardcoded prompts found in the codebase that need to be
 
 ### 8. Outcome Analysis Prompt
 
-- **File**: `/supabase/functions/omniscient-system/actions/analyze-outcome.ts`
+- **File**: `/supabase/functions/omniscient-system/actions/analyze-outcome.ts` [DEPRECATED]
 - **Function**: Inside outcome analysis logic
 - **Template Name**: `outcome_analysis_detailed`
 - **Variables**: `userAHandle`, `userBHandle`, `conversationTurns`, `predictedScore`, `predictedOutcome`, `predictedOpportunities`
