@@ -4,7 +4,7 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  NPM_FLAGS = "--production=false"
+  NPM_FLAGS = "--omit=dev"
 
 # Redirect all routes to index.html for SPA routing
 [[redirects]]
