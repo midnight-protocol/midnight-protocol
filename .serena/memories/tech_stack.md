@@ -1,6 +1,7 @@
 # Tech Stack
 
 ## Frontend
+
 - **Framework**: React 18.3.1 with TypeScript
 - **Build Tool**: Vite 5.4.1
 - **Styling**: Tailwind CSS with custom terminal/cyberpunk theme
@@ -10,16 +11,18 @@
 - **Routing**: React Router v6
 
 ## Backend
+
 - **Platform**: Supabase (PostgreSQL, Edge Functions, Auth)
 - **Edge Functions**: Deno-based serverless functions
 - **Database**: 13 core tables with Row Level Security (RLS) enabled
 - **Authentication**: Supabase Auth with email/password
 
 ## Integrations
+
 - **AI Models**: OpenRouter API (Claude & Gemini models)
 - **Email**: Resend for transactional emails
 - **Payments**: Stripe for subscription management
-- **Hosting**: Lovable.dev platform with automatic deployments
 
 ## Package Manager
+
 - **Bun**: Used for dependency management and running scripts
