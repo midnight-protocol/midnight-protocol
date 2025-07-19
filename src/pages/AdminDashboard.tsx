@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { ParticleBackground } from "@/components/ParticleBackground";
@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users,
-  RefreshCw,
   Database,
   Settings,
   Activity,
@@ -137,7 +136,7 @@ const AdminDashboard = () => {
             onValueChange={setActiveTab}
             className="space-y-4 md:space-y-6"
           >
-            <TabsList className="w-full overflow-x-auto flex md:grid md:grid-cols-4 lg:grid-cols-8 xl:grid-cols-9 bg-terminal-bg/30 border border-terminal-green/30">
+            <TabsList className="w-full overflow-x-auto overflow-y-hidden flex md:grid md:grid-cols-4 lg:grid-cols-8 xl:grid-cols-9 bg-terminal-bg/30 border border-terminal-green/30">
               <TabsTrigger
                 value="overview"
                 className="data-[state=active]:bg-terminal-green data-[state=active]:text-terminal-bg flex-shrink-0 text-xs sm:text-sm"
@@ -151,7 +150,7 @@ const AdminDashboard = () => {
                 className="data-[state=active]:bg-terminal-green data-[state=active]:text-terminal-bg flex-shrink-0 text-xs sm:text-sm"
               >
                 <Users className="w-4 h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">User Management</span>
+                <span className="hidden sm:inline">User Mgmt.</span>
                 <span className="sm:hidden">Users</span>
               </TabsTrigger>
               <TabsTrigger
@@ -159,7 +158,7 @@ const AdminDashboard = () => {
                 className="data-[state=active]:bg-terminal-green data-[state=active]:text-terminal-bg flex-shrink-0 text-xs sm:text-sm"
               >
                 <Settings className="w-4 h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">System Config</span>
+                <span className="hidden sm:inline">System Cfg.</span>
                 <span className="sm:hidden">Config</span>
               </TabsTrigger>
               <TabsTrigger
@@ -175,7 +174,8 @@ const AdminDashboard = () => {
                 className="data-[state=active]:bg-terminal-green data-[state=active]:text-terminal-bg flex-shrink-0 text-xs sm:text-sm"
               >
                 <Database className="w-4 h-4 mr-1 sm:mr-2" />
-                Metrics
+                <span className="hidden sm:inline">Metrics</span>
+                <span className="sm:hidden">Metrics</span>
               </TabsTrigger>
               <TabsTrigger
                 value="prompts"
@@ -191,14 +191,14 @@ const AdminDashboard = () => {
               >
                 <Database className="w-4 h-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">LLM Logs</span>
-                <span className="sm:hidden">Logs</span>
+                <span className="sm:hidden">LLM</span>
               </TabsTrigger>
               <TabsTrigger
                 value="email-interests"
                 className="data-[state=active]:bg-terminal-green data-[state=active]:text-terminal-bg flex-shrink-0 text-xs sm:text-sm"
               >
                 <Mail className="w-4 h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Email Interests</span>
+                <span className="hidden sm:inline">Emails</span>
                 <span className="sm:hidden">Email</span>
               </TabsTrigger>
             </TabsList>
