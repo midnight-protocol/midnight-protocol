@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,28 +15,28 @@ export const MembershipSection = () => {
 
   const handleFreeTier = () => {
     if (user) {
-      navigate('/dashboard');
+      navigate("/dashboard");
     } else {
-      sessionStorage.setItem('selectedTier', 'free');
-      navigate('/auth');
+      sessionStorage.setItem("selectedTier", "free");
+      navigate("/auth");
     }
   };
 
   const handleProTier = async () => {
     if (!user) {
-      sessionStorage.setItem('selectedTier', 'networker');
-      sessionStorage.setItem('billingPeriod', 'quarterly');
-      navigate('/auth');
+      sessionStorage.setItem("selectedTier", "networker");
+      sessionStorage.setItem("billingPeriod", "quarterly");
+      navigate("/auth");
       return;
     }
 
     try {
       setLoading(true);
-      await createCheckout('networker');
-      toast.success('Redirecting to Stripe checkout...');
+      await createCheckout("networker");
+      toast.success("Redirecting to Stripe checkout...");
     } catch (error) {
-      console.error('Checkout error:', error);
-      toast.error('Failed to start checkout process');
+      console.error("Checkout error:", error);
+      toast.error("Failed to start checkout process");
     } finally {
       setLoading(false);
     }
@@ -67,11 +66,9 @@ export const MembershipSection = () => {
                   Test the waters
                 </p>
               </div>
-              <div className="text-3xl font-bold text-terminal-text">
-                $0
-              </div>
+              <div className="text-3xl font-bold text-terminal-text">$0</div>
             </div>
-            
+
             <ul className="space-y-3 mb-8">
               <li className="flex items-center gap-3">
                 <Check className="w-4 h-4 text-terminal-green flex-shrink-0" />
@@ -119,7 +116,7 @@ export const MembershipSection = () => {
         <Card className="bg-terminal-bg/50 border-terminal-yellow/50 relative overflow-hidden group hover:border-terminal-yellow transition-all">
           <div className="absolute inset-0 bg-gradient-to-br from-terminal-yellow/5 to-transparent"></div>
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-terminal-yellow/20 rounded-full blur-3xl"></div>
-          
+
           {/* Popular Badge */}
           <div className="absolute -top-1 left-1/2 transform -translate-x-1/2">
             <div className="bg-terminal-yellow text-terminal-bg px-4 py-1 rounded-b-lg text-xs font-mono font-bold flex items-center gap-1">
@@ -135,7 +132,7 @@ export const MembershipSection = () => {
                   NETWORKER
                 </h3>
                 <p className="text-terminal-text-muted text-sm">
-                  25x more opportunities
+                  5x more opportunities
                 </p>
               </div>
               <div>
@@ -153,12 +150,13 @@ export const MembershipSection = () => {
                 🚀 Founder price: 50% off forever (reg. $20)
               </p>
             </div>
-            
+
             <ul className="space-y-3 mb-8">
               <li className="flex items-center gap-3">
                 <Check className="w-4 h-4 text-terminal-green flex-shrink-0" />
                 <span className="text-terminal-text font-light text-sm">
-                  <strong className="text-terminal-yellow">750+</strong> conversations monthly
+                  <strong className="text-terminal-yellow">150+</strong>{" "}
+                  conversations monthly
                 </span>
               </li>
               <li className="flex items-center gap-3">
@@ -210,7 +208,6 @@ export const MembershipSection = () => {
           </CardContent>
         </Card>
       </div>
-
     </section>
   );
 };

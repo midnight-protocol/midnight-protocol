@@ -88,23 +88,25 @@ export const EmailInterestForm = () => {
   }
 
   return (
-    <div className="max-w-md mx-auto space-y-6">
-      <div className="text-center mb-6">
-        <h3 className="text-xl md:text-2xl font-bold text-terminal-green mb-2 font-mono">
-          GET EARLY ACCESS
-        </h3>
-        <p className="text-terminal-text-muted text-sm">
-          Be first to know when we launch
-        </p>
-      </div>
+    <div className="max-w-lg mx-auto space-y-8 relative">
+      {/* Attractive border container */}
+      <div className="relative border-2 border-terminal-cyan/40 rounded-xl p-8 md:p-10 bg-terminal-bg/30 backdrop-blur-sm shadow-lg hover:shadow-terminal-cyan/20 transition-all duration-300 before:absolute before:inset-0 before:border-2 before:border-terminal-green/30 before:rounded-xl before:animate-pulse before:pointer-events-none">
+        <div className="text-center mb-8">
+          <h3 className="text-xl md:text-2xl font-bold text-terminal-green mb-2 font-mono glow-green">
+            GET EARLY ACCESS
+          </h3>
+          <p className="text-terminal-text-muted text-sm">
+            Be first to know when we launch
+          </p>
+        </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Name Field */}
         <div>
           <Input
             {...register("name")}
             placeholder="Your name"
-            className="bg-terminal-bg/50 border-terminal-cyan/30 text-terminal-text placeholder:text-terminal-text-muted focus:border-terminal-cyan font-mono"
+            className="bg-terminal-bg/50 border-terminal-cyan/30 text-terminal-text placeholder:text-terminal-text-muted focus:border-terminal-cyan font-mono h-12 text-base"
             disabled={isSubmitting}
           />
           {errors.name && (
@@ -118,7 +120,7 @@ export const EmailInterestForm = () => {
             {...register("email")}
             type="email"
             placeholder="your@email.com"
-            className="bg-terminal-bg/50 border-terminal-cyan/30 text-terminal-text placeholder:text-terminal-text-muted focus:border-terminal-cyan font-mono"
+            className="bg-terminal-bg/50 border-terminal-cyan/30 text-terminal-text placeholder:text-terminal-text-muted focus:border-terminal-cyan font-mono h-12 text-base"
             disabled={isSubmitting}
           />
           {errors.email && (
@@ -127,7 +129,7 @@ export const EmailInterestForm = () => {
         </div>
 
         {/* Required Consent Checkbox */}
-        <div className="space-y-3">
+        <div className="space-y-4 mt-8">
           <div className="flex items-start space-x-3">
             <Checkbox
               id="updatesConsent"
@@ -138,7 +140,7 @@ export const EmailInterestForm = () => {
             />
             <label 
               htmlFor="updatesConsent" 
-              className="text-sm text-terminal-text leading-relaxed cursor-pointer"
+              className="text-base text-terminal-text leading-relaxed cursor-pointer"
             >
               I consent to receive updates about Midnight Protocol development
               <span className="text-red-400 ml-1">*</span>
@@ -159,7 +161,7 @@ export const EmailInterestForm = () => {
             />
             <label 
               htmlFor="relatedInitiativesConsent" 
-              className="text-sm text-terminal-text-muted leading-relaxed cursor-pointer"
+              className="text-base text-terminal-text-muted leading-relaxed cursor-pointer"
             >
               I'm interested in occasional updates about related initiatives
             </label>
@@ -170,17 +172,18 @@ export const EmailInterestForm = () => {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-terminal-green text-terminal-bg hover:bg-terminal-cyan transition-all duration-300 font-mono text-base px-8 py-6 shadow-lg hover:shadow-terminal-green/20 hover:scale-105 font-bold disabled:opacity-50"
+          className="w-full bg-terminal-green text-terminal-bg hover:bg-terminal-cyan transition-all duration-300 font-mono text-lg px-8 py-7 shadow-lg hover:shadow-terminal-green/20 hover:scale-105 font-bold disabled:opacity-50 mt-8"
         >
           {isSubmitting ? 'Submitting...' : 'Join the Waitlist'}
           {!isSubmitting && <ArrowRight className="w-4 h-4 ml-2 animate-pulse" />}
         </Button>
       </form>
 
-      <div className="text-center">
-        <p className="text-terminal-text-muted text-xs">
-          No spam • Unsubscribe anytime • Early access guaranteed
-        </p>
+        <div className="text-center mt-6">
+          <p className="text-terminal-text-muted text-sm">
+            No spam • Unsubscribe anytime • Early access guaranteed
+          </p>
+        </div>
       </div>
     </div>
   );

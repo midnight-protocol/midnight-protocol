@@ -1,9 +1,8 @@
-
-import React, { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import React, { useState } from "react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const MobileMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,9 +11,9 @@ export const MobileMenu = () => {
 
   const handleNavigation = (path: string) => {
     setIsOpen(false);
-    if (path.startsWith('#')) {
+    if (path.startsWith("#")) {
       const element = document.querySelector(path);
-      element?.scrollIntoView({ behavior: 'smooth' });
+      element?.scrollIntoView({ behavior: "smooth" });
     } else {
       navigate(path);
     }
@@ -36,25 +35,25 @@ export const MobileMenu = () => {
         <div className="absolute top-full left-0 right-0 bg-terminal-bg/95 backdrop-blur-sm border-b border-terminal-cyan/20 z-50">
           <nav className="flex flex-col p-4 space-y-3">
             <button
-              onClick={() => handleNavigation('#near-misses')}
+              onClick={() => handleNavigation("#near-misses")}
               className="text-terminal-text-muted hover:text-terminal-green transition-colors font-mono text-sm text-left py-2"
             >
               Examples
             </button>
             <button
-              onClick={() => handleNavigation('#protocol')}
+              onClick={() => handleNavigation("#protocol")}
               className="text-terminal-text-muted hover:text-terminal-green transition-colors font-mono text-sm text-left py-2"
             >
               How it Works
             </button>
             <button
-              onClick={() => handleNavigation('#membership')}
+              onClick={() => handleNavigation("#membership")}
               className="text-terminal-text-muted hover:text-terminal-green transition-colors font-mono text-sm text-left py-2"
             >
               Pricing
             </button>
             <div className="pt-2 border-t border-terminal-cyan/20">
-              {user ? (
+              {/* {user ? (
                 <Button 
                   onClick={() => handleNavigation('/dashboard')} 
                   className="w-full bg-terminal-green text-terminal-bg hover:bg-terminal-cyan transition-colors font-mono"
@@ -67,6 +66,14 @@ export const MobileMenu = () => {
                   className="w-full bg-terminal-green text-terminal-bg hover:bg-terminal-cyan transition-colors font-mono"
                 >
                   Start Free
+                </Button>
+              )} */}
+              {user && (
+                <Button
+                  onClick={() => handleNavigation("/dashboard")}
+                  className="w-full bg-terminal-green text-terminal-bg hover:bg-terminal-cyan transition-colors font-mono"
+                >
+                  Dashboard
                 </Button>
               )}
             </div>
