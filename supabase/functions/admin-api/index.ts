@@ -65,6 +65,12 @@ import {
   getLLMLogStats,
   exportLLMLogs,
 } from "./actions/llm-logs.ts";
+import {
+  getEmailInterests,
+  getEmailInterestStats,
+  exportEmailInterests,
+  deleteEmailInterest,
+} from "./actions/email-interests.ts";
 
 const actions: Record<string, Function> = {
   // Authentication
@@ -131,6 +137,12 @@ const actions: Record<string, Function> = {
   getLLMLogDetails,
   getLLMLogStats,
   exportLLMLogs,
+
+  // Email Interests
+  getEmailInterests,
+  getEmailInterestStats,
+  exportEmailInterests,
+  deleteEmailInterest,
 };
 
 serve(async (req) => {

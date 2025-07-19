@@ -13,6 +13,7 @@ import {
   Activity,
   BarChart3,
   FileCode2,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminDashboardLoadingSkeleton } from "@/components/skeletons/AdminDashboardSkeletons";
@@ -56,6 +57,11 @@ const PromptEditor = lazy(() =>
 const LLMLogsPanel = lazy(() =>
   import("@/components/admin/LLMLogsPanel").then((m) => ({
     default: m.LLMLogsPanel,
+  }))
+);
+const EmailInterestsPanel = lazy(() =>
+  import("@/components/admin/EmailInterestsPanel").then((m) => ({
+    default: m.default,
   }))
 );
 
@@ -131,7 +137,7 @@ const AdminDashboard = () => {
             onValueChange={setActiveTab}
             className="space-y-4 md:space-y-6"
           >
-            <TabsList className="w-full overflow-x-auto flex md:grid md:grid-cols-8 bg-terminal-bg/30 border border-terminal-green/30">
+            <TabsList className="w-full overflow-x-auto flex md:grid md:grid-cols-4 lg:grid-cols-8 xl:grid-cols-9 bg-terminal-bg/30 border border-terminal-green/30">
               <TabsTrigger
                 value="overview"
                 className="data-[state=active]:bg-terminal-green data-[state=active]:text-terminal-bg flex-shrink-0 text-xs sm:text-sm"
@@ -187,6 +193,14 @@ const AdminDashboard = () => {
                 <span className="hidden sm:inline">LLM Logs</span>
                 <span className="sm:hidden">Logs</span>
               </TabsTrigger>
+              <TabsTrigger
+                value="email-interests"
+                className="data-[state=active]:bg-terminal-green data-[state=active]:text-terminal-bg flex-shrink-0 text-xs sm:text-sm"
+              >
+                <Mail className="w-4 h-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Email Interests</span>
+                <span className="sm:hidden">Email</span>
+              </TabsTrigger>
             </TabsList>
 
             {/* Overview Tab */}
@@ -233,6 +247,12 @@ const AdminDashboard = () => {
             <TabsContent value="llm-logs">
               <Suspense fallback={<AdminDashboardLoadingSkeleton />}>
                 <LLMLogsPanel />
+              </Suspense>
+            </TabsContent>
+
+            <TabsContent value="email-interests">
+              <Suspense fallback={<AdminDashboardLoadingSkeleton />}>
+                <EmailInterestsPanel />
               </Suspense>
             </TabsContent>
           </Tabs>

@@ -198,6 +198,47 @@ export interface LLMLogStats {
   costBreakdown: Record<string, number>;
 }
 
+export interface EmailInterestFilters {
+  search?: string;
+  dateRange?: string;
+  updatesConsent?: boolean;
+  relatedInitiativesConsent?: boolean;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  limit?: number;
+  offset?: number;
+}
+
+export interface EmailInterest {
+  id: string;
+  name: string;
+  email: string;
+  updates_consent: boolean;
+  related_initiatives_consent: boolean;
+  created_at: string;
+}
+
+export interface EmailInterestSearchResult {
+  interests: EmailInterest[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface EmailInterestStats {
+  total: number;
+  today: number;
+  thisWeek: number;
+  thisMonth: number;
+  consent: {
+    updates: number;
+    relatedInitiatives: number;
+    both: number;
+  };
+  recentActivity: Record<string, number>;
+}
+
 class AdminAPIService {
   private async callAdminAPI<T = any>(
     action: string,
@@ -633,6 +674,30 @@ class AdminAPIService {
     format: "csv" | "json" = "json"
   ): Promise<{ data: string; filename: string }> {
     return this.callAdminAPI("exportLLMLogs", { ...filters, format });
+  }
+
+  // Email Interests
+  async getEmailInterests(filters: EmailInterestFilters): Promise<EmailInterestSearchResult> {
+    return this.callAdminAPI("getEmailInterests", filters);
+  }
+
+  async getEmailInterestStats(): Promise<EmailInterestStats> {
+    return this.callAdminAPI("getEmailInterestStats");
+  }
+
+  async exportEmailInterests(
+    filters: EmailInterestFilters,
+    format: "csv" | "json" = "csv"
+  ): Promise<{ data: string; filename: string; contentType: string }> {
+    return this.callAdminAPI("exportEmailInterests", { ...filters, format });
+  }
+
+  async deleteEmailInterest(interestId: string): Promise<{ success: boolean }> {
+    return this.callAdminAPI("deleteEmailInterest", {
+      interestId,
+      target_type: "email_interest",
+      target_id: interestId,
+    });
   }
 }
 
