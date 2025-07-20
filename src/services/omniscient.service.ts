@@ -23,6 +23,13 @@ export interface OmniscientMatch {
   analysis_summary?: string;
   match_reasoning?: string;
   analyzed_at?: string;
+  should_notify?: boolean;
+  notification_score?: number;
+  notification_reasoning?: string;
+  introduction_rationale_for_user_a?: string;
+  introduction_rationale_for_user_b?: string;
+  agent_summaries_agent_a_to_human_a?: string;
+  agent_summaries_agent_b_to_human_b?: string;
   created_at: string;
   updated_at: string;
   user_a?: { id: string; handle: string };
@@ -464,8 +471,11 @@ class OmniscientService {
     userIdA: string,
     userIdB: string
   ): Promise<{
-    match: OmniscientMatch;
-    analysis: any;
+    success: boolean;
+    data: {
+      match: OmniscientMatch;
+      analysis: any;
+    };
   }> {
     return this.callFunction("manualMatch", { userIdA, userIdB }, true);
   }

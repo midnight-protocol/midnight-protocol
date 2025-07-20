@@ -25,7 +25,8 @@ export async function getPromptTemplates(
         json_schema,
         llm_model,
         created_at,
-        change_notes
+        change_notes,
+        default_temperature
       )
     `
     )
@@ -49,6 +50,7 @@ export async function getPromptTemplates(
       llm_model: version.llm_model,
       created_at: template.created_at,
       updated_at: template.updated_at,
+      default_temperature: version.default_temperature,
     };
   });
 
@@ -89,6 +91,7 @@ export async function updatePromptTemplate(
     is_json_response?: boolean;
     json_schema?: any;
     llm_model?: string;
+    default_temperature?: number;
   },
   user?: AdminUser
 ) {
@@ -100,6 +103,7 @@ export async function updatePromptTemplate(
     is_json_response,
     json_schema,
     llm_model,
+    default_temperature,
   } = params;
 
   // Extract variables from template
@@ -141,6 +145,7 @@ export async function updatePromptTemplate(
       is_json_response: is_json_response,
       json_schema: json_schema,
       llm_model: llm_model,
+      default_temperature: default_temperature,
     })
     .select()
     .single();
@@ -178,6 +183,7 @@ export async function updatePromptTemplate(
         is_json_response,
         json_schema,
         llm_model,
+        default_temperature,
         created_at
       )
     `
@@ -199,6 +205,7 @@ export async function updatePromptTemplate(
     is_json_response: version.is_json_response,
     json_schema: version.json_schema,
     llm_model: version.llm_model,
+    default_temperature: version.default_temperature,
     created_at: updatedTemplate.created_at,
     updated_at: updatedTemplate.updated_at,
   };
@@ -228,6 +235,7 @@ export async function createPromptTemplate(
     is_json_response?: boolean;
     json_schema?: any;
     llm_model?: string;
+    default_temperature?: number;
   },
   user?: AdminUser
 ) {
@@ -238,6 +246,7 @@ export async function createPromptTemplate(
     is_json_response,
     json_schema,
     llm_model,
+    default_temperature,
   } = params;
 
   // Validate required fields
@@ -288,6 +297,7 @@ export async function createPromptTemplate(
       is_json_response: is_json_response || false,
       json_schema: json_schema,
       llm_model: llm_model,
+      default_temperature: default_temperature,
     })
     .select()
     .single();
@@ -305,6 +315,7 @@ export async function createPromptTemplate(
     is_json_response: newVersion.is_json_response,
     json_schema: newVersion.json_schema,
     llm_model: newVersion.llm_model,
+    default_temperature: newVersion.default_temperature,
     created_at: newTemplate.created_at,
     updated_at: newTemplate.updated_at,
   };
@@ -365,6 +376,7 @@ export async function restorePromptVersion(
       is_json_response: version.is_json_response,
       json_schema: version.json_schema,
       llm_model: version.llm_model,
+      default_temperature: version.default_temperature,
     })
     .select()
     .single();
@@ -397,6 +409,7 @@ export async function restorePromptVersion(
         is_json_response,
         json_schema,
         llm_model,
+        default_temperature,
         created_at
       )
     `
@@ -418,6 +431,7 @@ export async function restorePromptVersion(
     is_json_response: versionData.is_json_response,
     json_schema: versionData.json_schema,
     llm_model: versionData.llm_model,
+    default_temperature: versionData.default_temperature,
     created_at: updatedTemplate.created_at,
     updated_at: updatedTemplate.updated_at,
   };
@@ -449,7 +463,8 @@ export async function exportPromptTemplates(
         is_current,
         is_json_response,
         json_schema,
-        llm_model
+        llm_model,
+        default_temperature
       )
     `
     )
@@ -485,6 +500,7 @@ export async function exportPromptTemplates(
           is_json_response: version.is_json_response,
           json_schema: version.json_schema,
           llm_model: version.llm_model,
+          default_temperature: version.default_temperature,
         })),
     })),
   };
@@ -613,6 +629,7 @@ export async function importPromptTemplates(
           is_json_response: version.is_json_response || false,
           json_schema: version.json_schema,
           llm_model: version.llm_model,
+          default_temperature: version.default_temperature,
         }));
 
         const { data: newVersions, error: versionsError } = await supabase

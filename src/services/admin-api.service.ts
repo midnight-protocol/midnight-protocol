@@ -109,10 +109,10 @@ export interface RunPromptOptions {
   // Either template name or ID (one required)
   templateName?: string;
   templateId?: string;
-  
+
   // Variables to interpolate in the template
   variables: Record<string, string>;
-  
+
   // Optional LLM parameters
   model?: string;
   temperature?: number;
@@ -124,7 +124,7 @@ export interface RunPromptOptions {
       schema: Record<string, unknown>;
     };
   };
-  
+
   // Optional messages to append after the system prompt
   additionalMessages?: Array<{
     role: "user" | "assistant" | "system";
@@ -146,14 +146,14 @@ export interface PromptResponse {
 
 export interface LLMLogFilters {
   model?: string;
-  status?: 'started' | 'completed' | 'failed';
-  methodType?: 'chat_completion' | 'stream_completion';
+  status?: "started" | "completed" | "failed";
+  methodType?: "chat_completion" | "stream_completion";
   edgeFunction?: string;
   userId?: string;
   dateRange?: string;
   search?: string;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
   limit?: number;
   offset?: number;
 }
@@ -162,8 +162,8 @@ export interface LLMLog {
   id: string;
   request_id?: string;
   model: string;
-  method_type: 'chat_completion' | 'stream_completion';
-  status: 'started' | 'completed' | 'failed';
+  method_type: "chat_completion" | "stream_completion";
+  status: "started" | "completed" | "failed";
   prompt_tokens?: number;
   completion_tokens?: number;
   total_tokens?: number;
@@ -414,10 +414,7 @@ class AdminAPIService {
     return this.callAdminAPI("deleteAllTestUsers");
   }
 
-  async getTestUsers(params?: {
-    limit?: number;
-    offset?: number;
-  }): Promise<{
+  async getTestUsers(params?: { limit?: number; offset?: number }): Promise<{
     users: any[];
     total: number;
     limit: number;
@@ -426,10 +423,13 @@ class AdminAPIService {
     return this.callAdminAPI("getTestUsers", params || {});
   }
 
-  async getUserMatches(userId: string, params?: {
-    limit?: number;
-    offset?: number;
-  }): Promise<{
+  async getUserMatches(
+    userId: string,
+    params?: {
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<{
     matches: any[];
     total: number;
     limit: number;
@@ -444,16 +444,22 @@ class AdminAPIService {
     return this.callAdminAPI("getMatchInsights", { matchId });
   }
 
-  async getUserConversations(userId: string, params?: {
-    limit?: number;
-    offset?: number;
-  }): Promise<{
+  async getUserConversations(
+    userId: string,
+    params?: {
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<{
     conversations: any[];
     total: number;
     limit: number;
     offset: number;
   }> {
-    return this.callAdminAPI("getUserConversations", { userId, ...(params || {}) });
+    return this.callAdminAPI("getUserConversations", {
+      userId,
+      ...(params || {}),
+    });
   }
 
   async getConversationTurns(conversationId: string): Promise<{
@@ -547,6 +553,7 @@ class AdminAPIService {
     is_json_response?: boolean;
     json_schema?: any;
     llm_model?: string;
+    default_temperature?: number;
   }): Promise<any> {
     return this.callAdminAPI("createPromptTemplate", {
       ...data,
@@ -564,6 +571,7 @@ class AdminAPIService {
       is_json_response?: boolean;
       json_schema?: any;
       llm_model?: string;
+      default_temperature?: number;
     }
   ): Promise<any> {
     return this.callAdminAPI("updatePromptTemplate", {
@@ -607,7 +615,7 @@ class AdminAPIService {
 
   async importPromptTemplates(
     importData: any,
-    conflictStrategy?: 'skip' | 'overwrite' | 'rename'
+    conflictStrategy?: "skip" | "overwrite" | "rename"
   ): Promise<{
     imported: number;
     skipped: number;
@@ -634,7 +642,7 @@ class AdminAPIService {
     options: RunPromptOptions
   ): Promise<{ data: T; metadata: Omit<PromptResponse, "response"> }> {
     const response = await this.runPrompt(options);
-    
+
     try {
       const parsedData = JSON.parse(response.response);
       return {
@@ -656,12 +664,14 @@ class AdminAPIService {
     return this.callAdminAPI("getLLMLogs", filters);
   }
 
-  async getLLMLogDetails(logId: string): Promise<LLMLog & { 
-    input_messages: any; 
-    input_params: any; 
-    output_response: any; 
-    completion_text?: string;
-  }> {
+  async getLLMLogDetails(logId: string): Promise<
+    LLMLog & {
+      input_messages: any;
+      input_params: any;
+      output_response: any;
+      completion_text?: string;
+    }
+  > {
     return this.callAdminAPI("getLLMLogDetails", { logId });
   }
 
@@ -677,7 +687,9 @@ class AdminAPIService {
   }
 
   // Email Interests
-  async getEmailInterests(filters: EmailInterestFilters): Promise<EmailInterestSearchResult> {
+  async getEmailInterests(
+    filters: EmailInterestFilters
+  ): Promise<EmailInterestSearchResult> {
     return this.callAdminAPI("getEmailInterests", filters);
   }
 

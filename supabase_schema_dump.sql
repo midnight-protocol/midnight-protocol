@@ -352,6 +352,19 @@ CREATE TABLE IF NOT EXISTS "public"."cron_job_logs" (
 ALTER TABLE "public"."cron_job_logs" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."email_interests" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "name" "text" NOT NULL,
+    "email" "text" NOT NULL,
+    "updates_consent" boolean DEFAULT false NOT NULL,
+    "related_initiatives_consent" boolean DEFAULT false NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"()
+);
+
+
+ALTER TABLE "public"."email_interests" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."email_logs" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "user_id" "uuid" NOT NULL,
@@ -396,6 +409,36 @@ CREATE TABLE IF NOT EXISTS "public"."introduction_requests" (
 
 
 ALTER TABLE "public"."introduction_requests" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."llm_call_logs" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "request_id" "text",
+    "model" "text" NOT NULL,
+    "method_type" "text" NOT NULL,
+    "input_messages" "jsonb" NOT NULL,
+    "input_params" "jsonb" DEFAULT '{}'::"jsonb",
+    "output_response" "jsonb",
+    "completion_text" "text",
+    "prompt_tokens" integer DEFAULT 0,
+    "completion_tokens" integer DEFAULT 0,
+    "total_tokens" integer DEFAULT 0,
+    "cost_usd" numeric(10,4),
+    "response_time_ms" integer,
+    "started_at" timestamp with time zone DEFAULT "now"(),
+    "completed_at" timestamp with time zone,
+    "status" "text" DEFAULT 'started'::"text",
+    "error_message" "text",
+    "http_status_code" integer,
+    "edge_function" "text",
+    "user_id" "uuid",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    CONSTRAINT "llm_call_logs_method_type_check" CHECK (("method_type" = ANY (ARRAY['chat_completion'::"text", 'stream_completion'::"text"]))),
+    CONSTRAINT "llm_call_logs_status_check" CHECK (("status" = ANY (ARRAY['started'::"text", 'completed'::"text", 'failed'::"text"])))
+);
+
+
+ALTER TABLE "public"."llm_call_logs" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."morning_reports" (
@@ -477,6 +520,14 @@ CREATE TABLE IF NOT EXISTS "public"."omniscient_matches" (
     "analyzed_at" timestamp with time zone,
     "created_at" timestamp with time zone DEFAULT "now"(),
     "updated_at" timestamp with time zone DEFAULT "now"(),
+    "should_notify" boolean,
+    "notification_score" numeric(3,2),
+    "notification_reasoning" "text",
+    "introduction_rationale_for_user_a" "text",
+    "introduction_rationale_for_user_b" "text",
+    "agent_summaries_agent_a_to_human_a" "text",
+    "agent_summaries_agent_b_to_human_b" "text",
+    CONSTRAINT "omniscient_matches_notification_score_check" CHECK ((("notification_score" >= 0.0) AND ("notification_score" <= 1.0))),
     CONSTRAINT "omniscient_matches_opportunity_score_check" CHECK ((("opportunity_score" >= (0)::numeric) AND ("opportunity_score" <= (1)::numeric)))
 );
 
@@ -789,6 +840,16 @@ ALTER TABLE ONLY "public"."cron_job_logs"
 
 
 
+ALTER TABLE ONLY "public"."email_interests"
+    ADD CONSTRAINT "email_interests_email_key" UNIQUE ("email");
+
+
+
+ALTER TABLE ONLY "public"."email_interests"
+    ADD CONSTRAINT "email_interests_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."email_logs"
     ADD CONSTRAINT "email_logs_pkey" PRIMARY KEY ("id");
 
@@ -806,6 +867,11 @@ ALTER TABLE ONLY "public"."introduction_requests"
 
 ALTER TABLE ONLY "public"."introduction_requests"
     ADD CONSTRAINT "introduction_requests_request_token_key" UNIQUE ("request_token");
+
+
+
+ALTER TABLE ONLY "public"."llm_call_logs"
+    ADD CONSTRAINT "llm_call_logs_pkey" PRIMARY KEY ("id");
 
 
 
@@ -1014,6 +1080,14 @@ CREATE INDEX "idx_cron_job_logs_executed_at" ON "public"."cron_job_logs" USING "
 
 
 
+CREATE INDEX "idx_email_interests_created_at" ON "public"."email_interests" USING "btree" ("created_at");
+
+
+
+CREATE INDEX "idx_email_interests_email" ON "public"."email_interests" USING "btree" ("email");
+
+
+
 CREATE INDEX "idx_email_logs_user_id" ON "public"."email_logs" USING "btree" ("user_id");
 
 
@@ -1031,6 +1105,30 @@ CREATE INDEX "idx_introduction_requests_target" ON "public"."introduction_reques
 
 
 CREATE INDEX "idx_introduction_requests_token" ON "public"."introduction_requests" USING "btree" ("request_token");
+
+
+
+CREATE INDEX "idx_llm_call_logs_created_at" ON "public"."llm_call_logs" USING "btree" ("created_at" DESC);
+
+
+
+CREATE INDEX "idx_llm_call_logs_edge_function" ON "public"."llm_call_logs" USING "btree" ("edge_function");
+
+
+
+CREATE INDEX "idx_llm_call_logs_model" ON "public"."llm_call_logs" USING "btree" ("model");
+
+
+
+CREATE INDEX "idx_llm_call_logs_status" ON "public"."llm_call_logs" USING "btree" ("status");
+
+
+
+CREATE INDEX "idx_llm_call_logs_tokens" ON "public"."llm_call_logs" USING "btree" ("total_tokens");
+
+
+
+CREATE INDEX "idx_llm_call_logs_user_id" ON "public"."llm_call_logs" USING "btree" ("user_id");
 
 
 
@@ -1228,6 +1326,11 @@ ALTER TABLE ONLY "public"."introduction_requests"
 
 
 
+ALTER TABLE ONLY "public"."llm_call_logs"
+    ADD CONSTRAINT "llm_call_logs_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE SET NULL;
+
+
+
 ALTER TABLE ONLY "public"."morning_reports"
     ADD CONSTRAINT "morning_reports_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE;
 
@@ -1357,6 +1460,12 @@ CREATE POLICY "Admins can manage prompt templates" ON "public"."prompt_templates
 
 
 
+CREATE POLICY "Admins can read all email interest records" ON "public"."email_interests" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM "public"."users"
+  WHERE (("users"."id" = "auth"."uid"()) AND ("users"."role" = 'admin'::"text")))));
+
+
+
 CREATE POLICY "Admins can update alerts" ON "public"."system_alerts" FOR UPDATE TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."users"
   WHERE (("users"."id" = "auth"."uid"()) AND ("users"."role" = 'admin'::"text")))));
@@ -1386,6 +1495,12 @@ CREATE POLICY "Admins can view all introduction emails" ON "public"."introductio
 CREATE POLICY "Admins can view all introduction requests" ON "public"."introduction_requests" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."users"
   WHERE (("users"."id" = "auth"."uid"()) AND ("users"."role" = 'admin'::"text")))));
+
+
+
+CREATE POLICY "Admins can view all llm call logs" ON "public"."llm_call_logs" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
+   FROM "public"."users"
+  WHERE (("users"."auth_user_id" = "auth"."uid"()) AND ("users"."role" = 'admin'::"text")))));
 
 
 
@@ -1453,6 +1568,10 @@ CREATE POLICY "Admins view all conversations" ON "public"."agent_conversations" 
 
 
 
+CREATE POLICY "Allow anonymous inserts on email_interests" ON "public"."email_interests" FOR INSERT TO "anon" WITH CHECK (true);
+
+
+
 CREATE POLICY "Authenticated users can view approved users" ON "public"."users" FOR SELECT TO "authenticated" USING ((("status" = 'APPROVED'::"public"."user_status") OR ("auth"."uid"() = "auth_user_id") OR "public"."is_admin"()));
 
 
@@ -1460,6 +1579,10 @@ CREATE POLICY "Authenticated users can view approved users" ON "public"."users" 
 CREATE POLICY "Only admins can view cron logs" ON "public"."cron_job_logs" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."users"
   WHERE (("users"."auth_user_id" = "auth"."uid"()) AND ("users"."role" = 'admin'::"text")))));
+
+
+
+CREATE POLICY "Service role has full access to llm call logs" ON "public"."llm_call_logs" TO "service_role" USING (true) WITH CHECK (true);
 
 
 
@@ -1538,6 +1661,10 @@ CREATE POLICY "Users can manage their own essence" ON "public"."personal_stories
 CREATE POLICY "Users can manage their own onboarding" ON "public"."onboarding_conversations" USING (("auth"."uid"() = ( SELECT "users"."auth_user_id"
    FROM "public"."users"
   WHERE ("users"."id" = "onboarding_conversations"."user_id"))));
+
+
+
+CREATE POLICY "Users can read their own email interest records" ON "public"."email_interests" FOR SELECT TO "authenticated" USING (("email" = ("auth"."jwt"() ->> 'email'::"text")));
 
 
 
@@ -1640,6 +1767,12 @@ CREATE POLICY "Users can view their own email logs" ON "public"."email_logs" FOR
 
 
 
+CREATE POLICY "Users can view their own llm call logs" ON "public"."llm_call_logs" FOR SELECT TO "authenticated" USING (("user_id" IN ( SELECT "users"."id"
+   FROM "public"."users"
+  WHERE ("users"."auth_user_id" = "auth"."uid"()))));
+
+
+
 CREATE POLICY "Users can view their own morning reports" ON "public"."morning_reports" USING (("auth"."uid"() = ( SELECT "users"."auth_user_id"
    FROM "public"."users"
   WHERE ("users"."id" = "morning_reports"."user_id"))));
@@ -1698,6 +1831,9 @@ ALTER TABLE "public"."agent_profiles" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."cron_job_logs" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."email_interests" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."email_logs" ENABLE ROW LEVEL SECURITY;
 
 
@@ -1705,6 +1841,9 @@ ALTER TABLE "public"."introduction_emails" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."introduction_requests" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."llm_call_logs" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."morning_reports" ENABLE ROW LEVEL SECURITY;
@@ -2068,6 +2207,12 @@ GRANT ALL ON TABLE "public"."cron_job_logs" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."email_interests" TO "anon";
+GRANT ALL ON TABLE "public"."email_interests" TO "authenticated";
+GRANT ALL ON TABLE "public"."email_interests" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."email_logs" TO "anon";
 GRANT ALL ON TABLE "public"."email_logs" TO "authenticated";
 GRANT ALL ON TABLE "public"."email_logs" TO "service_role";
@@ -2083,6 +2228,12 @@ GRANT ALL ON TABLE "public"."introduction_emails" TO "service_role";
 GRANT ALL ON TABLE "public"."introduction_requests" TO "anon";
 GRANT ALL ON TABLE "public"."introduction_requests" TO "authenticated";
 GRANT ALL ON TABLE "public"."introduction_requests" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."llm_call_logs" TO "anon";
+GRANT ALL ON TABLE "public"."llm_call_logs" TO "authenticated";
+GRANT ALL ON TABLE "public"."llm_call_logs" TO "service_role";
 
 
 
