@@ -395,6 +395,25 @@ class OmniscientService {
     return this.callFunction("sendMorningReportEmails", options, true);
   }
 
+  async sendSingleMorningReportEmail(options: {
+    reportId: string;
+    forceResend?: boolean;
+    dryRun?: boolean;
+    emailOverride?: string;
+  }): Promise<{
+    summary: {
+      message: string;
+      date: string;
+      emailsSent: number;
+      emailsFailed: number;
+      isForceResend: boolean;
+      isDryRun: boolean;
+    };
+    data?: any[];
+  }> {
+    return this.callFunction("sendMorningReportEmails", options, true);
+  }
+
   async getMorningReports(filters?: {
     userId?: string;
     dateRange?: { start: string; end: string };

@@ -1,5 +1,8 @@
 import { ActionContext, ActionResponse } from "../types.ts";
-import { createEmailService, EmailService } from "../../_shared/email-service.ts";
+import {
+  createEmailService,
+  EmailService,
+} from "../../_shared/email-service.ts";
 
 export default async function sendMorningReportEmails(
   context: ActionContext
@@ -12,12 +15,122 @@ export default async function sendMorningReportEmails(
     forceResend = false,
     dryRun = false,
     emailOverride,
+    reportId,
   } = params;
 
   const reportDate = date ? new Date(date) : new Date();
   const targetDate = reportDate.toISOString().split("T")[0];
 
   try {
+    const reportsToEmail = [];
+
+    // Handle single report mode
+    if (reportId) {
+      // make sure emailOverride is set
+      if (!emailOverride) {
+        return {
+          success: false,
+          summary: {
+            message:
+              "Email override is required in single report mode. Please set the emailOverride parameter.",
+            date: targetDate,
+            emailsSent: 0,
+            emailsFailed: 0,
+            isForceResend: forceResend,
+            isDryRun: dryRun,
+          },
+        };
+      }
+
+      console.log(`🔍 Fetching specific report by ID: ${reportId}`);
+
+      // Fetch specific report by ID
+      const { data, error } = await supabase
+        .from("omniscient_morning_reports")
+        .select(
+          `
+        *,
+        user:users!user_id(id, handle, auth_user_id)
+      `
+        )
+        .eq("id", reportId)
+        .gt("notification_count", 0);
+
+      if (error) {
+        throw new Error(
+          `Failed to fetch morning report ${reportId}: ${error.message}`
+        );
+      }
+
+      if (!data || data.length === 0) {
+        return {
+          success: true,
+          summary: {
+            message: "Report not found or has no notifications",
+            date: targetDate,
+            emailsSent: 0,
+            emailsFailed: 0,
+            isForceResend: forceResend,
+            isDryRun: dryRun,
+          },
+        };
+      }
+
+      reportsToEmail.push(data[0]);
+    } else {
+      console.log(`🔍 Fetching morning reports for ${targetDate}`);
+      // Build query for morning reports
+      let query = supabase
+        .from("omniscient_morning_reports")
+        .select(
+          `
+            *,
+            user:users!user_id(id, handle, auth_user_id)
+          `
+        )
+        .eq("report_date", targetDate)
+        .gt("notification_count", 0); // Only send emails for reports with actual notifications
+
+      // Filter by email status unless force resend
+      if (!forceResend) {
+        query = query.eq("email_sent", false);
+      }
+
+      // Filter by specific user IDs if provided
+      if (userIds && userIds.length > 0) {
+        query = query.in("user_id", userIds);
+      }
+
+      const { data, error } = await query;
+
+      console.log(`🔍 Morning reports fetched: ${data.length}`);
+
+      if (error) {
+        throw new Error(
+          `Failed to fetch morning reports for email: ${error.message}`
+        );
+      }
+
+      if (!data || data.length === 0) {
+        return {
+          success: true,
+          summary: {
+            message: forceResend
+              ? "No morning reports found for the specified criteria"
+              : "No morning reports with unsent emails found",
+            date: targetDate,
+            emailsSent: 0,
+            emailsFailed: 0,
+            isForceResend: forceResend,
+            isDryRun: dryRun,
+          },
+        };
+      }
+
+      reportsToEmail.push(...data);
+    }
+
+    // Bulk mode (existing functionality)
     console.log(
       `📧 ${
         dryRun ? "Dry run for sending" : "Sending"
@@ -25,52 +138,6 @@ export default async function sendMorningReportEmails(
         emailOverride ? ` (Override: ${emailOverride})` : ""
       }`
     );
-
-    // Build query for morning reports
-    let query = supabase
-      .from("omniscient_morning_reports")
-      .select(
-        `
-      *,
-      user:users!user_id(id, handle, auth_user_id)
-    `
-      )
-      .eq("report_date", targetDate)
-      .gt("notification_count", 0); // Only send emails for reports with actual notifications
-
-    // Filter by email status unless force resend
-    if (!forceResend) {
-      query = query.eq("email_sent", false);
-    }
-
-    // Filter by specific user IDs if provided
-    if (userIds && userIds.length > 0) {
-      query = query.in("user_id", userIds);
-    }
-
-    const { data: reportsToEmail, error } = await query;
-
-    if (error) {
-      throw new Error(
-        `Failed to fetch morning reports for email: ${error.message}`
-      );
-    }
-
-    if (!reportsToEmail || reportsToEmail.length === 0) {
-      return {
-        success: true,
-        summary: {
-          message: forceResend
-            ? "No morning reports found for the specified criteria"
-            : "No morning reports with unsent emails found",
-          date: targetDate,
-          emailsSent: 0,
-          emailsFailed: 0,
-          isForceResend: forceResend,
-          isDryRun: dryRun,
-        },
-      };
-    }
 
     console.log(`Found ${reportsToEmail.length} reports to email`);
 
@@ -91,10 +158,13 @@ export default async function sendMorningReportEmails(
 
       if (authError) {
         console.error("Failed to fetch user emails:", authError);
-        console.error("Auth error details:", JSON.stringify(authError, null, 2));
+        console.error(
+          "Auth error details:",
+          JSON.stringify(authError, null, 2)
+        );
         throw new Error(`Failed to fetch user emails: ${authError.message}`);
       }
-      
+
       authUsers = data || [];
     } else {
       console.log("No auth_user_ids found, skipping auth.users query");
@@ -130,7 +200,9 @@ export default async function sendMorningReportEmails(
     let emailsFailed = 0;
 
     console.log(`🔄 Starting to process ${reportsToEmail.length} reports...`);
-    console.log(`⏱️ Rate limiting: 500ms delay between emails to respect 2/second limit`);
+    console.log(
+      `⏱️ Rate limiting: 500ms delay between emails to respect 2/second limit`
+    );
 
     // Create email service instance once
     const emailService = createEmailService();
@@ -140,7 +212,7 @@ export default async function sendMorningReportEmails(
       try {
         const user = report.user;
         const authUserId = user?.auth_user_id;
-        
+
         // Try to get user details by auth_user_id first, then by user_id (for test users)
         let userDetails = authUserId ? userDetailsMap.get(authUserId) : null;
         if (!userDetails) {
@@ -197,7 +269,7 @@ export default async function sendMorningReportEmails(
         let emailResponse;
         let retryCount = 0;
         const maxRetries = 3;
-        
+
         while (retryCount <= maxRetries) {
           try {
             emailResponse = await emailService.sendEmail({
@@ -206,37 +278,41 @@ export default async function sendMorningReportEmails(
               html: emailContent.body,
             });
 
-            if (emailResponse.status === 'sent') {
+            if (emailResponse.status === "sent") {
               break; // Success, exit retry loop
             }
-            
+
             // Check if it's a rate limit error
-            if (emailResponse.error?.includes('Too many requests') || emailResponse.error?.includes('rate limit')) {
+            if (
+              emailResponse.error?.includes("Too many requests") ||
+              emailResponse.error?.includes("rate limit")
+            ) {
               retryCount++;
               if (retryCount <= maxRetries) {
                 const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff, max 5s
-                console.log(`⏳ Rate limited, retrying in ${delay}ms (attempt ${retryCount}/${maxRetries})`);
-                await new Promise(resolve => setTimeout(resolve, delay));
+                console.log(
+                  `⏳ Rate limited, retrying in ${delay}ms (attempt ${retryCount}/${maxRetries})`
+                );
+                await new Promise((resolve) => setTimeout(resolve, delay));
                 continue;
               }
             }
-            
+
             // Non-rate-limit error or max retries reached
             break;
-            
           } catch (error) {
             console.error(`❌ Email service error:`, error);
             emailResponse = {
               email: recipientEmail,
-              status: 'failed' as const,
-              error: error.message || 'Unknown error',
+              status: "failed" as const,
+              error: error.message || "Unknown error",
               timestamp: new Date().toISOString(),
             };
             break;
           }
         }
 
-        if (emailResponse.status === 'failed') {
+        if (emailResponse.status === "failed") {
           console.error(
             `❌ Failed to send email to ${recipientEmail}${
               emailOverride ? ` (original: ${userEmail})` : ""
@@ -278,15 +354,16 @@ export default async function sendMorningReportEmails(
         console.log(
           `✅ Sent morning report email to ${recipientEmail}${
             emailOverride ? ` (original: ${userEmail})` : ""
-          } (${report.notification_count} notifications) - Message ID: ${emailResponse.messageId}`
+          } (${report.notification_count} notifications) - Message ID: ${
+            emailResponse.messageId
+          }`
         );
-        
+
         // Rate limiting: Wait between emails (except for the last one)
         if (i < reportsToEmail.length - 1) {
           console.log(`⏱️ Waiting 500ms before next email...`);
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 500));
         }
-        
       } catch (userError) {
         console.error(
           `Error sending email for user ${report.user_id}:`,
@@ -411,15 +488,4 @@ function generateEmailContent(report: any, user: any, emailOverride?: string) {
   `;
 
   return { subject, body };
-}
-
-// Helper function to format date
-function formatReportDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
 }
