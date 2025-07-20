@@ -18,20 +18,24 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Database, 
-  RefreshCw, 
-  Search, 
-  Download, 
+import {
+  Database,
+  RefreshCw,
+  Search,
+  Download,
   Eye,
   Clock,
   DollarSign,
   Zap,
   AlertCircle,
   CheckCircle2,
-  Loader2
+  Loader2,
 } from "lucide-react";
-import { adminAPIService, LLMLogFilters, LLMLog } from "@/services/admin-api.service";
+import {
+  adminAPIService,
+  LLMLogFilters,
+  LLMLog,
+} from "@/services/admin-api.service";
 import { InfiniteScroll } from "@/components/ui/infinite-scroll";
 import { useChunkedData } from "@/hooks/useChunkedData";
 import { LLMLogDetailsModal } from "./LLMLogDetailsModal";
@@ -39,22 +43,25 @@ import { toast } from "sonner";
 
 export const LLMLogsPanel = () => {
   const [filters, setFilters] = useState<LLMLogFilters>({
-    sortBy: 'created_at',
-    sortOrder: 'desc',
+    sortBy: "created_at",
+    sortOrder: "desc",
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLog, setSelectedLog] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  const fetchLogs = useCallback(async (offset: number, limit: number) => {
-    const result = await adminAPIService.getLLMLogs({
-      ...filters,
-      search: searchTerm || undefined,
-      offset,
-      limit,
-    });
-    return result.logs;
-  }, [filters, searchTerm]);
+  const fetchLogs = useCallback(
+    async (offset: number, limit: number) => {
+      const result = await adminAPIService.getLLMLogs({
+        ...filters,
+        search: searchTerm || undefined,
+        offset,
+        limit,
+      });
+      return result.logs;
+    },
+    [filters, searchTerm]
+  );
 
   const {
     data: logs,
@@ -71,73 +78,90 @@ export const LLMLogsPanel = () => {
     },
   });
 
-  const handleFilterChange = useCallback((key: keyof LLMLogFilters, value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value || undefined,
-    }));
-  }, []);
+  const handleFilterChange = useCallback(
+    (key: keyof LLMLogFilters, value: string) => {
+      setFilters((prev) => ({
+        ...prev,
+        [key]: value || undefined,
+      }));
+    },
+    []
+  );
 
   const handleSearch = useCallback(() => {
     refresh();
   }, [refresh]);
 
-  const handleExport = useCallback(async (format: 'csv' | 'json') => {
-    setExporting(true);
-    try {
-      const result = await adminAPIService.exportLLMLogs(
-        { ...filters, search: searchTerm || undefined },
-        format
-      );
-      
-      // Create download link
-      const blob = new Blob([result.data], { 
-        type: format === 'csv' ? 'text/csv' : 'application/json' 
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = result.filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      toast.success(`Exported ${logs.length} logs as ${format.toUpperCase()}`);
-    } catch (error) {
-      console.error("Export error:", error);
-      toast.error("Failed to export logs");
-    } finally {
-      setExporting(false);
-    }
-  }, [filters, searchTerm, logs.length]);
+  const handleExport = useCallback(
+    async (format: "csv" | "json") => {
+      setExporting(true);
+      try {
+        const result = await adminAPIService.exportLLMLogs(
+          { ...filters, search: searchTerm || undefined },
+          format
+        );
+
+        // Create download link
+        const blob = new Blob([result.data], {
+          type: format === "csv" ? "text/csv" : "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = result.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast.success(
+          `Exported ${logs.length} logs as ${format.toUpperCase()}`
+        );
+      } catch (error) {
+        console.error("Export error:", error);
+        toast.error("Failed to export logs");
+      } finally {
+        setExporting(false);
+      }
+    },
+    [filters, searchTerm, logs.length]
+  );
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'completed':
+      case "completed":
         return (
-          <Badge variant="outline" className="border-terminal-green text-terminal-green">
+          <Badge
+            variant="outline"
+            className="border-terminal-green text-terminal-green"
+          >
             <CheckCircle2 className="w-3 h-3 mr-1" />
             Completed
           </Badge>
         );
-      case 'failed':
+      case "failed":
         return (
           <Badge variant="outline" className="border-red-400 text-red-400">
             <AlertCircle className="w-3 h-3 mr-1" />
             Failed
           </Badge>
         );
-      case 'started':
+      case "started":
         return (
-          <Badge variant="outline" className="border-terminal-yellow text-terminal-yellow">
+          <Badge
+            variant="outline"
+            className="border-terminal-yellow text-terminal-yellow"
+          >
             <Loader2 className="w-3 h-3 mr-1 animate-spin" />
             In Progress
           </Badge>
         );
       default:
         return (
-          <Badge variant="outline" className="border-terminal-text-muted text-terminal-text-muted">
+          <Badge
+            variant="outline"
+            className="border-terminal-text-muted text-terminal-text-muted"
+          >
             {status}
           </Badge>
         );
@@ -188,7 +212,7 @@ export const LLMLogsPanel = () => {
             </CardTitle>
             <div className="flex gap-2">
               <Button
-                onClick={() => handleExport('csv')}
+                onClick={() => handleExport("csv")}
                 variant="outline"
                 size="sm"
                 disabled={exporting}
@@ -198,7 +222,7 @@ export const LLMLogsPanel = () => {
                 CSV
               </Button>
               <Button
-                onClick={() => handleExport('json')}
+                onClick={() => handleExport("json")}
                 variant="outline"
                 size="sm"
                 disabled={exporting}
@@ -230,7 +254,7 @@ export const LLMLogsPanel = () => {
                   placeholder="Model, function, error..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   className="pl-8 bg-terminal-bg/50 border-terminal-green/30 text-terminal-text placeholder:text-terminal-text-muted"
                 />
                 <Search className="w-4 h-4 absolute left-2 top-2.5 text-terminal-text-muted" />
@@ -239,7 +263,12 @@ export const LLMLogsPanel = () => {
 
             <div className="space-y-2">
               <label className="text-xs text-terminal-text-muted">Status</label>
-              <Select value={filters.status || "all"} onValueChange={(value) => handleFilterChange('status', value === 'all' ? '' : value)}>
+              <Select
+                value={filters.status || "all"}
+                onValueChange={(value) =>
+                  handleFilterChange("status", value === "all" ? "" : value)
+                }
+              >
                 <SelectTrigger className="bg-terminal-bg/50 border-terminal-green/30">
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
@@ -254,14 +283,23 @@ export const LLMLogsPanel = () => {
 
             <div className="space-y-2">
               <label className="text-xs text-terminal-text-muted">Method</label>
-              <Select value={filters.methodType || "all"} onValueChange={(value) => handleFilterChange('methodType', value === 'all' ? '' : value)}>
+              <Select
+                value={filters.methodType || "all"}
+                onValueChange={(value) =>
+                  handleFilterChange("methodType", value === "all" ? "" : value)
+                }
+              >
                 <SelectTrigger className="bg-terminal-bg/50 border-terminal-green/30">
                   <SelectValue placeholder="All methods" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All methods</SelectItem>
-                  <SelectItem value="chat_completion">Chat Completion</SelectItem>
-                  <SelectItem value="stream_completion">Stream Completion</SelectItem>
+                  <SelectItem value="chat_completion">
+                    Chat Completion
+                  </SelectItem>
+                  <SelectItem value="stream_completion">
+                    Stream Completion
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -271,30 +309,39 @@ export const LLMLogsPanel = () => {
               <Input
                 placeholder="Filter by model"
                 value={filters.model || ""}
-                onChange={(e) => handleFilterChange('model', e.target.value)}
+                onChange={(e) => handleFilterChange("model", e.target.value)}
                 className="bg-terminal-bg/50 border-terminal-green/30 text-terminal-text placeholder:text-terminal-text-muted"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs text-terminal-text-muted">Edge Function</label>
+              <label className="text-xs text-terminal-text-muted">
+                Edge Function
+              </label>
               <Input
                 placeholder="Filter by function"
                 value={filters.edgeFunction || ""}
-                onChange={(e) => handleFilterChange('edgeFunction', e.target.value)}
+                onChange={(e) =>
+                  handleFilterChange("edgeFunction", e.target.value)
+                }
                 className="bg-terminal-bg/50 border-terminal-green/30 text-terminal-text placeholder:text-terminal-text-muted"
               />
             </div>
 
             <div className="space-y-2">
               <label className="text-xs text-terminal-text-muted">Sort</label>
-              <Select value={filters.sortBy || "created_at"} onValueChange={(value) => handleFilterChange('sortBy', value)}>
+              <Select
+                value={filters.sortBy || "created_at"}
+                onValueChange={(value) => handleFilterChange("sortBy", value)}
+              >
                 <SelectTrigger className="bg-terminal-bg/50 border-terminal-green/30">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="created_at">Created At</SelectItem>
-                  <SelectItem value="response_time_ms">Response Time</SelectItem>
+                  <SelectItem value="response_time_ms">
+                    Response Time
+                  </SelectItem>
                   <SelectItem value="total_tokens">Total Tokens</SelectItem>
                   <SelectItem value="cost_usd">Cost</SelectItem>
                 </SelectContent>
@@ -302,7 +349,7 @@ export const LLMLogsPanel = () => {
             </div>
           </div>
 
-          <Button 
+          <Button
             onClick={handleSearch}
             className="bg-terminal-green text-terminal-bg hover:bg-terminal-green/80"
           >
@@ -341,28 +388,40 @@ export const LLMLogsPanel = () => {
                         Time (ms)
                       </div>
                     </TableHead>
-                    <TableHead className="text-terminal-cyan">Function</TableHead>
+                    <TableHead className="text-terminal-cyan">
+                      Function
+                    </TableHead>
                     <TableHead className="text-terminal-cyan">User</TableHead>
-                    <TableHead className="text-terminal-cyan">Actions</TableHead>
+                    <TableHead className="text-terminal-cyan">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {logs.map((log) => (
-                    <TableRow 
-                      key={log.id} 
+                    <TableRow
+                      key={log.id}
                       className="border-terminal-green/30 hover:bg-terminal-bg/20 font-mono text-sm"
                     >
                       <TableCell className="text-terminal-text">
                         {formatDate(log.created_at)}
                       </TableCell>
                       <TableCell className="text-terminal-text">
-                        <div className="max-w-[120px] truncate" title={log.model}>
+                        <div
+                          className="max-w-[120px] truncate"
+                          title={log.model}
+                        >
                           {log.model}
                         </div>
                       </TableCell>
                       <TableCell className="text-terminal-text">
-                        <Badge variant="outline" className="border-terminal-cyan text-terminal-cyan">
-                          {log.method_type === 'chat_completion' ? 'Chat' : 'Stream'}
+                        <Badge
+                          variant="outline"
+                          className="border-terminal-cyan text-terminal-cyan"
+                        >
+                          {log.method_type === "chat_completion"
+                            ? "Chat"
+                            : "Stream"}
                         </Badge>
                       </TableCell>
                       <TableCell>{getStatusBadge(log.status)}</TableCell>
@@ -372,11 +431,16 @@ export const LLMLogsPanel = () => {
                       <TableCell className="text-terminal-yellow">
                         {formatCost(log.cost_usd)}
                       </TableCell>
-                      <TableCell className={getResponseTimeColor(log.response_time_ms)}>
+                      <TableCell
+                        className={getResponseTimeColor(log.response_time_ms)}
+                      >
                         {log.response_time_ms || "-"}
                       </TableCell>
                       <TableCell className="text-terminal-text">
-                        <div className="max-w-[100px] truncate" title={log.edge_function || ""}>
+                        <div
+                          className="max-w-[100px] truncate"
+                          title={log.edge_function || ""}
+                        >
                           {log.edge_function || "-"}
                         </div>
                       </TableCell>

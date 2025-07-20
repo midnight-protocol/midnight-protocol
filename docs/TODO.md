@@ -1,10 +1,13 @@
+[x] Fix omnisicient analysis
 [x] Generate test users feature
-[ ] Morning reports
 [x] Emails working
-[ ] Stripe integration
+[ ] Morning reports
 [ ] Dashboard to API/Services layers
+[ ] Stripe integration
 [ ] Omniscient dashboard still has some diretc supabase calls
 [ ] Everything else to API/Services layers
-[x] Fix omnisicient analysis
 [ ] supabase security and performance warnings
 [ ] linter issues
+[ ] analytics
+[ ] system configs
+[ ] automation w/ monitoring

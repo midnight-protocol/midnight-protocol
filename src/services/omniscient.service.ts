@@ -162,6 +162,55 @@ export interface OmniscientDashboardData {
   systemHealth: OmniscientSystemHealth;
 }
 
+export interface OmniscientMorningReport {
+  id: string;
+  user_id: string;
+  report_date: string;
+  match_notifications: MatchNotification[];
+  match_summaries: MatchSummaries;
+  agent_insights: AgentInsights;
+  notification_count: number;
+  total_opportunity_score: number;
+  email_sent: boolean;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    id: string;
+    handle: string;
+  };
+}
+
+export interface MatchNotification {
+  match_id: string;
+  other_user: {
+    id: string;
+    handle: string;
+    email: string;
+  };
+  notification_score: number;
+  opportunity_score: number;
+  predicted_outcome: string;
+  notification_reasoning: string;
+  introduction_rationale: string;
+  agent_summary: string;
+  match_reasoning: string;
+  insights: any[];
+  created_at: string;
+}
+
+export interface MatchSummaries {
+  total_matches: number;
+  average_opportunity_score: number;
+  top_outcomes: Record<string, number>;
+  highest_scoring_match: number;
+}
+
+export interface AgentInsights {
+  patterns_observed: string[];
+  top_opportunities: string[];
+  recommended_actions: string[];
+}
+
 // Service implementation
 class OmniscientService {
   private async callFunction(
@@ -212,50 +261,8 @@ class OmniscientService {
     limit?: number;
     offset?: number;
   }): Promise<OmniscientMatch[]> {
-    let query = supabase
-      .from("omniscient_matches")
-      .select(
-        `
-        *,
-        user_a:users!user_a_id(id, handle),
-        user_b:users!user_b_id(id, handle),
-        insights:omniscient_match_insights(
-          id,
-          relevance_score,
-          insight:omniscient_insights(*)
-        )
-      `
-      )
-      .order("created_at", { ascending: false });
-
-    if (filters?.status) {
-      query = query.eq("status", filters.status);
-    }
-    if (filters?.minScore) {
-      query = query.gte("opportunity_score", filters.minScore);
-    }
-    if (filters?.userId) {
-      query = query.or(
-        `user_a_id.eq.${filters.userId},user_b_id.eq.${filters.userId}`
-      );
-    }
-    if (filters?.limit) {
-      query = query.limit(filters.limit);
-    }
-    if (filters?.offset) {
-      query = query.range(
-        filters.offset,
-        filters.offset + (filters.limit || 10) - 1
-      );
-    }
-
-    const { data, error } = await query;
-    if (error) {
-      console.error("Error fetching matches:", error);
-      throw new Error(`Failed to fetch matches: ${error.message}`);
-    }
-
-    return data || [];
+    const result = await this.callFunction("getMatches", filters);
+    return result.data || [];
   }
 
   async getMatchInsights(matchId: string): Promise<{ match: OmniscientMatch }> {
@@ -263,28 +270,8 @@ class OmniscientService {
   }
 
   async getMatch(matchId: string): Promise<OmniscientMatch> {
-    const { data, error } = await supabase
-      .from("omniscient_matches")
-      .select(
-        `
-        *,
-        user_a:users!user_a_id(id, handle),
-        user_b:users!user_b_id(id, handle),
-        insights:omniscient_match_insights(
-          id,
-          relevance_score,
-          insight:omniscient_insights(*)
-        )
-      `
-      )
-      .eq("id", matchId)
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to fetch match: ${error.message}`);
-    }
-
-    return data;
+    const result = await this.callFunction("getMatch", { matchId });
+    return result.data;
   }
 
   // Conversation Operations
@@ -301,28 +288,8 @@ class OmniscientService {
   async getConversation(
     conversationId: string
   ): Promise<OmniscientConversation> {
-    const { data, error } = await supabase
-      .from("omniscient_conversations")
-      .select(
-        `
-        *,
-        match:omniscient_matches!match_id(
-          *,
-          user_a:users!user_a_id(id, handle),
-          user_b:users!user_b_id(id, handle)
-        ),
-        turns:omniscient_turns(*),
-        outcomes:omniscient_outcomes(*)
-      `
-      )
-      .eq("id", conversationId)
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to fetch conversation: ${error.message}`);
-    }
-
-    return data;
+    const result = await this.callFunction("getConversation", { conversationId });
+    return result.data;
   }
 
   async getConversations(filters?: {
@@ -333,46 +300,8 @@ class OmniscientService {
     limit?: number;
     offset?: number;
   }): Promise<OmniscientConversation[]> {
-    let query = supabase
-      .from("omniscient_conversations")
-      .select(
-        `
-        *,
-        match:omniscient_matches!match_id(
-          *,
-          user_a:users!user_a_id(id, handle),
-          user_b:users!user_b_id(id, handle)
-        )
-      `
-      )
-      .order("created_at", { ascending: false });
-
-    if (filters?.matchId) {
-      query = query.eq("match_id", filters.matchId);
-    }
-    if (filters?.status) {
-      query = query.eq("status", filters.status);
-    }
-    if (filters?.dateRange) {
-      query = query.gte("created_at", filters.dateRange.start);
-      query = query.lte("created_at", filters.dateRange.end);
-    }
-    if (filters?.limit) {
-      query = query.limit(filters.limit);
-    }
-    if (filters?.offset) {
-      query = query.range(
-        filters.offset,
-        filters.offset + (filters.limit || 10) - 1
-      );
-    }
-
-    const { data, error } = await query;
-    if (error) {
-      throw new Error(`Failed to fetch conversations: ${error.message}`);
-    }
-
-    return data || [];
+    const result = await this.callFunction("getConversations", filters);
+    return result.data || [];
   }
 
   async monitorConversation(conversationId: string) {
@@ -423,6 +352,75 @@ class OmniscientService {
     return this.callFunction("generateReport", { date }, true);
   }
 
+  // Morning Reports Operations
+  async generateMorningReports(options: {
+    date?: string;
+    forceRegenerate?: boolean;
+    userId?: string;
+  } = {}): Promise<{
+    summary: {
+      date: string;
+      totalMatches: number;
+      usersWithReports: number;
+      reportsGenerated: number;
+      matchesMarkedAsReported: number;
+      isIncremental: boolean;
+      forceRegenerate: boolean;
+      averageNotificationsPerUser: number;
+    };
+    reports: any[];
+  }> {
+    return this.callFunction("generateMorningReports", options, true);
+  }
+
+  async sendMorningReportEmails(options: {
+    date?: string;
+    userIds?: string[];
+    templateOverride?: string;
+    forceResend?: boolean;
+    dryRun?: boolean;
+    emailOverride?: string;
+  } = {}): Promise<{
+    summary: {
+      date: string;
+      totalReports: number;
+      emailsSent: number;
+      emailsFailed: number;
+      successRate: number;
+      isForceResend: boolean;
+      isDryRun: boolean;
+    };
+    emailResults: any[];
+  }> {
+    return this.callFunction("sendMorningReportEmails", options, true);
+  }
+
+  async getMorningReports(filters?: {
+    userId?: string;
+    dateRange?: { start: string; end: string };
+    limit?: number;
+    offset?: number;
+  }): Promise<OmniscientMorningReport[]> {
+    const result = await this.callFunction("getMorningReports", filters);
+    return result.data || [];
+  }
+
+  async getUserMorningReport(userId: string, date?: string): Promise<OmniscientMorningReport | null> {
+    const result = await this.callFunction("getUserMorningReport", { userId, date });
+    return result.data;
+  }
+
+  async getMorningReportEmailStatus(date?: string): Promise<{
+    date: string;
+    totalReports: number;
+    emailsSent: number;
+    emailsPending: number;
+    successRate: number;
+  }> {
+    const result = await this.callFunction("getMorningReportEmailStatus", { date });
+    return result.data;
+  }
+
   // Analytics Operations
   async getAnalytics(dateRange?: {
     start: string;
@@ -438,32 +436,12 @@ class OmniscientService {
   }
 
   async getProcessingLogs(filters?: {
-    analy;
     processType?: string;
     status?: string;
     limit?: number;
   }): Promise<OmniscientProcessingLog[]> {
-    let query = supabase
-      .from("omniscient_processing_logs")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (filters?.processType) {
-      query = query.eq("process_type", filters.processType);
-    }
-    if (filters?.status) {
-      query = query.eq("status", filters.status);
-    }
-    if (filters?.limit) {
-      query = query.limit(filters.limit);
-    }
-
-    const { data, error } = await query;
-    if (error) {
-      throw new Error(`Failed to fetch processing logs: ${error.message}`);
-    }
-
-    return data || [];
+    const result = await this.callFunction("getProcessingLogs", filters);
+    return result.data || [];
   }
 
   // Admin Operations
@@ -519,33 +497,8 @@ class OmniscientService {
     followUpRecommended?: boolean;
     limit?: number;
   }): Promise<OmniscientOutcome[]> {
-    let query = supabase
-      .from("omniscient_outcomes")
-      .select(
-        `
-        *,
-        conversation:omniscient_conversations(*),
-        match:omniscient_matches(*)
-      `
-      )
-      .order("created_at", { ascending: false });
-
-    if (filters?.conversationId) {
-      query = query.eq("conversation_id", filters.conversationId);
-    }
-    if (filters?.followUpRecommended !== undefined) {
-      query = query.eq("follow_up_recommended", filters.followUpRecommended);
-    }
-    if (filters?.limit) {
-      query = query.limit(filters.limit);
-    }
-
-    const { data, error } = await query;
-    if (error) {
-      throw new Error(`Failed to fetch outcomes: ${error.message}`);
-    }
-
-    return data || [];
+    const result = await this.callFunction("getOutcomes", filters);
+    return result.data || [];
   }
 
   async analyzeOutcome(conversationId: string): Promise<any> {

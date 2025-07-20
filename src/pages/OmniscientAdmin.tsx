@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { Brain, Users, MessageSquare, BarChart3, Settings } from "lucide-react";
+import { Brain, Users, MessageSquare, BarChart3, Settings, Sun } from "lucide-react";
 import OmniscientDashboard from "@/components/admin/omniscient/OmniscientDashboard";
 import OmniscientMatchManager from "@/components/admin/omniscient/OmniscientMatchManager";
+import OmniscientMorningReports from "@/components/admin/omniscient/OmniscientMorningReports";
 import OmniscientConversationMonitor from "@/components/admin/omniscient/OmniscientConversationMonitor";
 import OmniscientAnalytics from "@/components/admin/omniscient/OmniscientAnalytics";
 import OmniscientConfig from "@/components/admin/omniscient/OmniscientConfig";
@@ -23,7 +24,7 @@ const OmniscientAdmin = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-5 w-full mb-6 bg-gray-800 border-gray-700">
+        <TabsList className="grid grid-cols-6 w-full mb-6 bg-gray-800 border-gray-700">
           <TabsTrigger
             value="dashboard"
             className="flex items-center gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
@@ -39,6 +40,13 @@ const OmniscientAdmin = () => {
             Matches
           </TabsTrigger>
           <TabsTrigger
+            value="morning-reports"
+            className="flex items-center gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+          >
+            <Sun className="w-4 h-4" />
+            Morning Reports
+          </TabsTrigger>
+          <TabsTrigger
             value="conversations"
             className="flex items-center gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
@@ -52,13 +60,13 @@ const OmniscientAdmin = () => {
             <BarChart3 className="w-4 h-4" />
             Analytics
           </TabsTrigger>
-          <TabsTrigger
+          {/* <TabsTrigger
             value="config"
             className="flex items-center gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
             <Settings className="w-4 h-4" />
             Config
-          </TabsTrigger>
+          </TabsTrigger> */}
         </TabsList>
 
         <div className="space-y-6">
@@ -68,6 +76,10 @@ const OmniscientAdmin = () => {
 
           <TabsContent value="matches" className="mt-0">
             <OmniscientMatchManager />
+          </TabsContent>
+
+          <TabsContent value="morning-reports" className="mt-0">
+            <OmniscientMorningReports />
           </TabsContent>
 
           <TabsContent value="conversations" className="mt-0">

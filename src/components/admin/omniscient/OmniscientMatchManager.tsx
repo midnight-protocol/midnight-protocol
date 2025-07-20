@@ -183,7 +183,12 @@ const OmniscientMatchManager = () => {
     });
   };
 
-  const handleManualMatch = (userIdA: string, userIdB: string, userAHandle: string, userBHandle: string) => {
+  const handleManualMatch = (
+    userIdA: string,
+    userIdB: string,
+    userAHandle: string,
+    userBHandle: string
+  ) => {
     manualMatchMutation.mutate({ userIdA, userIdB });
   };
 
@@ -201,7 +206,7 @@ const OmniscientMatchManager = () => {
             className="bg-green-600 hover:bg-green-700"
           >
             <Users className="w-4 h-4 mr-2" />
-            Run Match on Users
+            Run Match on Specific Users
           </Button>
           <Button
             onClick={handleAnalyzeMatches}
@@ -262,6 +267,7 @@ const OmniscientMatchManager = () => {
                   </SelectItem>
                   <SelectItem value="analyzed">Analyzed</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="reported">Reported</SelectItem>
                 </SelectContent>
               </Select>
             </div>

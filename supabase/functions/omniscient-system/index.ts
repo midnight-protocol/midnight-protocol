@@ -18,6 +18,17 @@ import manualMatch from "./actions/manual-match.ts";
 import getConversationDetails from "./actions/get-conversation-details.ts";
 import analyzeOutcome from "./actions/analyze-outcome.ts";
 import generateReport from "./actions/generate-report.ts";
+import generateMorningReports from "./actions/generate-morning-reports.ts";
+import sendMorningReportEmails from "./actions/send-morning-report-emails.ts";
+import getMorningReports from "./actions/get-morning-reports.ts";
+import getMatches from "./actions/get-matches.ts";
+import getConversations from "./actions/get-conversations.ts";
+import getMatch from "./actions/get-match.ts";
+import getConversation from "./actions/get-conversation.ts";
+import getUserMorningReport from "./actions/get-user-morning-report.ts";
+import getMorningReportEmailStatus from "./actions/get-morning-report-email-status.ts";
+import getProcessingLogs from "./actions/get-processing-logs.ts";
+import getOutcomes from "./actions/get-outcomes.ts";
 
 // Action registry
 const actionHandlers = {
@@ -35,6 +46,17 @@ const actionHandlers = {
   getConversationDetails,
   analyzeOutcome,
   generateReport,
+  generateMorningReports,
+  sendMorningReportEmails,
+  getMorningReports,
+  getMatches,
+  getConversations,
+  getMatch,
+  getConversation,
+  getUserMorningReport,
+  getMorningReportEmailStatus,
+  getProcessingLogs,
+  getOutcomes,
 };
 
 serve(async (req) => {

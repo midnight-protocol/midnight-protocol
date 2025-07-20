@@ -10,6 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run build:dev` - Build for development mode
 - `npm run lint` - Run ESLint on all TypeScript/TSX files
 - `npm run preview` - Preview production build locally
+- **IMPORTANT**: never try to run the dev server with npm run dev, it is already running
 
 ### Supabase Edge Functions
 - `supabase start` - Start local Supabase instance (requires Docker)
