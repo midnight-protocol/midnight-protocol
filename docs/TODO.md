@@ -4,3 +4,4 @@
 [ ] Stripe integration
 [ ] Dashboard to API/Services layers
 [ ] Everything else to API/Services layers
+[x] Fix omnisicient analysis

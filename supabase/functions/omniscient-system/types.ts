@@ -1,4 +1,4 @@
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 // Shared types for omniscient system
 export interface OmniscientRequest {
@@ -41,7 +41,7 @@ export interface UserProfile {
 
 export interface OmniscientAnalysisResult {
   opportunityScore: number;
-  outcome: 'STRONG_MATCH' | 'EXPLORATORY' | 'FUTURE_POTENTIAL' | 'NO_MATCH';
+  outcome: "STRONG_MATCH" | "EXPLORATORY" | "FUTURE_POTENTIAL" | "NO_MATCH";
   primaryOpportunities: Array<{
     title: string;
     description: string;
@@ -67,6 +67,19 @@ export interface OmniscientAnalysisResult {
     connection: string;
     value: string;
   }>;
+  notificationAssessment: {
+    shouldNotify: boolean;
+    notificationScore: number;
+    reasoning: string;
+  };
+  introductionRationale: {
+    forUserA: string;
+    forUserB: string;
+  };
+  agentSummaries: {
+    agentAToHumanA: string;
+    agentBToHumanB: string;
+  };
   reasoning: string;
 }
 

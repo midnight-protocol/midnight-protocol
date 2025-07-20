@@ -34,6 +34,9 @@ import {
   Zap,
   Calendar,
   TrendingUp,
+  Bell,
+  BellOff,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -103,6 +106,31 @@ const OmniscientMatchManager = () => {
     },
   });
 
+  // Rerun match analysis mutation
+  const rerunAnalysisMutation = useMutation({
+    mutationFn: ({ userIdA, userIdB }: { userIdA: string; userIdB: string }) =>
+      omniscientService.manualMatch(userIdA, userIdB),
+    onSuccess: (data) => {
+      toast.success(
+        `Match analysis updated! Opportunity score: ${
+          data.data?.match?.opportunity_score
+            ? omniscientService.formatOpportunityScore(
+                data.data.match.opportunity_score
+              )
+            : "N/A"
+        }`
+      );
+      queryClient.invalidateQueries({ queryKey: ["omniscient-matches"] });
+    },
+    onError: (error) => {
+      toast.error(
+        `Failed to rerun analysis: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    },
+  });
+
   // Filter matches based on search query
   const filteredMatches =
     matches?.filter((match) => {
@@ -121,6 +149,13 @@ const OmniscientMatchManager = () => {
 
   const handleExecuteConversation = (matchId: string) => {
     executeConversationMutation.mutate(matchId);
+  };
+
+  const handleRerunAnalysis = (match: OmniscientMatch) => {
+    rerunAnalysisMutation.mutate({
+      userIdA: match.user_a_id,
+      userIdB: match.user_b_id,
+    });
   };
 
   const getStatusCounts = () => {
@@ -346,6 +381,31 @@ const OmniscientMatchManager = () => {
                                   match.opportunity_score
                                 )}
                               </span>
+                              {match.should_notify !== undefined && (
+                                <div className="flex items-center gap-1 text-sm">
+                                  {match.should_notify ? (
+                                    <>
+                                      <Bell className="w-3 h-3 text-green-400" />
+                                      <span className="text-green-400">
+                                        Notify (
+                                        {match.notification_score
+                                          ? (
+                                              match.notification_score * 100
+                                            ).toFixed(0)
+                                          : "N/A"}
+                                        %)
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <BellOff className="w-3 h-3 text-gray-500" />
+                                      <span className="text-gray-500">
+                                        No notify
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                              )}
                               {match.scheduled_for && (
                                 <span className="text-sm text-gray-400 flex items-center gap-1">
                                   <Calendar className="w-3 h-3" />
@@ -388,14 +448,15 @@ const OmniscientMatchManager = () => {
                                 <Eye className="w-4 h-4" />
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="bg-gray-800 border-gray-700 max-w-2xl">
+                            <DialogContent className="bg-gray-800 border-gray-700 max-w-4xl max-h-[80vh] overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle className="text-white">
                                   Match Details: {match.user_a?.handle} ×{" "}
                                   {match.user_b?.handle}
                                 </DialogTitle>
                               </DialogHeader>
-                              <div className="space-y-4">
+                              <div className="space-y-6">
+                                {/* Basic Match Info */}
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <label className="text-sm font-medium text-gray-300">
@@ -424,6 +485,131 @@ const OmniscientMatchManager = () => {
                                   </div>
                                 </div>
 
+                                {/* Notification Info */}
+                                {match.should_notify !== undefined && (
+                                  <div className="p-4 bg-gray-700 rounded-lg">
+                                    <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                                      {match.should_notify ? (
+                                        <Bell className="w-5 h-5 text-green-400" />
+                                      ) : (
+                                        <BellOff className="w-5 h-5 text-gray-500" />
+                                      )}
+                                      Notification Assessment
+                                    </h3>
+                                    <div className="grid grid-cols-2 gap-4 mb-3">
+                                      <div>
+                                        <label className="text-sm font-medium text-gray-300">
+                                          Should Notify
+                                        </label>
+                                        <p
+                                          className={`text-sm font-bold ${
+                                            match.should_notify
+                                              ? "text-green-400"
+                                              : "text-gray-500"
+                                          }`}
+                                        >
+                                          {match.should_notify ? "Yes" : "No"}
+                                        </p>
+                                      </div>
+                                      <div>
+                                        <label className="text-sm font-medium text-gray-300">
+                                          Notification Score
+                                        </label>
+                                        <p className="text-sm font-bold text-white">
+                                          {match.notification_score
+                                            ? (
+                                                match.notification_score * 100
+                                              ).toFixed(1) + "%"
+                                            : "N/A"}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    {match.notification_reasoning && (
+                                      <div>
+                                        <label className="text-sm font-medium text-gray-300">
+                                          Reasoning
+                                        </label>
+                                        <p className="text-sm text-gray-400 mt-1">
+                                          {match.notification_reasoning}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Introduction Rationales */}
+                                {(match.introduction_rationale_for_user_a ||
+                                  match.introduction_rationale_for_user_b) && (
+                                  <div className="space-y-3">
+                                    <h3 className="text-lg font-semibold text-white">
+                                      Introduction Rationales
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      {match.introduction_rationale_for_user_a && (
+                                        <div className="p-3 bg-gray-700 rounded-lg">
+                                          <label className="text-sm font-medium text-gray-300">
+                                            For {match.user_a?.handle}
+                                          </label>
+                                          <p className="text-sm text-gray-400 mt-1">
+                                            {
+                                              match.introduction_rationale_for_user_a
+                                            }
+                                          </p>
+                                        </div>
+                                      )}
+                                      {match.introduction_rationale_for_user_b && (
+                                        <div className="p-3 bg-gray-700 rounded-lg">
+                                          <label className="text-sm font-medium text-gray-300">
+                                            For {match.user_b?.handle}
+                                          </label>
+                                          <p className="text-sm text-gray-400 mt-1">
+                                            {
+                                              match.introduction_rationale_for_user_b
+                                            }
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Agent Summaries */}
+                                {(match.agent_summaries_agent_a_to_human_a ||
+                                  match.agent_summaries_agent_b_to_human_b) && (
+                                  <div className="space-y-3">
+                                    <h3 className="text-lg font-semibold text-white">
+                                      Agent Summaries
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      {match.agent_summaries_agent_a_to_human_a && (
+                                        <div className="p-3 bg-gray-700 rounded-lg">
+                                          <label className="text-sm font-medium text-gray-300">
+                                            Agent A → {match.user_a?.handle}
+                                          </label>
+                                          <p className="text-sm text-gray-400 mt-1">
+                                            {
+                                              match.agent_summaries_agent_a_to_human_a
+                                            }
+                                          </p>
+                                        </div>
+                                      )}
+                                      {match.agent_summaries_agent_b_to_human_b && (
+                                        <div className="p-3 bg-gray-700 rounded-lg">
+                                          <label className="text-sm font-medium text-gray-300">
+                                            Agent B → {match.user_b?.handle}
+                                          </label>
+                                          <p className="text-sm text-gray-400 mt-1">
+                                            {
+                                              match.agent_summaries_agent_b_to_human_b
+                                            }
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Analysis Summary */}
                                 {match.analysis_summary && (
                                   <div>
                                     <label className="text-sm font-medium text-gray-300">
@@ -435,6 +621,7 @@ const OmniscientMatchManager = () => {
                                   </div>
                                 )}
 
+                                {/* Insights */}
                                 {match.insights &&
                                   match.insights.length > 0 && (
                                     <div>
@@ -478,6 +665,21 @@ const OmniscientMatchManager = () => {
                               </div>
                             </DialogContent>
                           </Dialog>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRerunAnalysis(match)}
+                            disabled={rerunAnalysisMutation.isPending}
+                            className="border-orange-500 text-orange-400 hover:bg-orange-600 hover:text-white"
+                            title="Rerun match analysis"
+                          >
+                            {rerunAnalysisMutation.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <RotateCcw className="w-4 h-4" />
+                            )}
+                          </Button>
 
                           {(match.status === "analyzed" ||
                             match.status === "scheduled") && (
