@@ -148,13 +148,16 @@ export default async function sendMorningReportEmails(
       })
       .filter(Boolean);
 
+    console.log(`🔍 User auth IDs: ${userAuthIds}`);
+
     // Fetch emails from auth.users table only if we have auth_user_ids
     let authUsers = [];
     if (userAuthIds.length > 0) {
-      const { data, error: authError } = await supabase
-        .from("auth.users")
-        .select("id, email")
-        .in("id", Array.from(userAuthIds));
+      // Use admin client to access auth.users
+      const { data, error: authError } = await supabase.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000
+      });
 
       if (authError) {
         console.error("Failed to fetch user emails:", authError);
@@ -165,7 +168,8 @@ export default async function sendMorningReportEmails(
         throw new Error(`Failed to fetch user emails: ${authError.message}`);
       }
 
-      authUsers = data || [];
+      // Filter users to only include those we need
+      authUsers = (data?.users || []).filter(user => userAuthIds.includes(user.id));
     } else {
       console.log("No auth_user_ids found, skipping auth.users query");
     }
@@ -245,7 +249,11 @@ export default async function sendMorningReportEmails(
               emailOverride ? ` (original: ${userEmail})` : ""
             }:`,
             {
-              subject: `🌅 Your Morning Report - ${report.notification_count > 0 ? `${report.notification_count} new opportunities` : "Network growing"}`,
+              subject: `🌅 Your Morning Report - ${
+                report.notification_count > 0
+                  ? `${report.notification_count} new opportunities`
+                  : "Network growing"
+              }`,
               notificationCount: report.notification_count,
             }
           );
@@ -272,9 +280,12 @@ export default async function sendMorningReportEmails(
         while (retryCount <= maxRetries) {
           try {
             // Look up template ID by name
-            const templateId = await getTemplateIdByName(supabase, "morning_report");
+            const templateId = await getTemplateIdByName(
+              supabase,
+              "morning_report"
+            );
             if (!templateId) {
-              throw new Error('Morning report template not found in database');
+              throw new Error("Morning report template not found in database");
             }
 
             emailResponse = await emailService.sendTemplateById(
@@ -415,66 +426,92 @@ export default async function sendMorningReportEmails(
 }
 
 // Helper function to prepare template variables
-function prepareTemplateVariables(report: any, user: any, emailOverride?: string) {
+function prepareTemplateVariables(
+  report: any,
+  user: any,
+  emailOverride?: string
+) {
   const hasNotifications = report.notification_count > 0;
   const appUrl = Deno.env.get("VITE_APP_URL") || "https://midnightprotocol.com";
   const matchNotifications = report.match_notifications || [];
-  const reportDate = report.report_date || new Date().toISOString().split("T")[0];
+  const reportDate =
+    report.report_date || new Date().toISOString().split("T")[0];
 
   // Calculate strong matches count from notifications (assuming high opportunity scores are "strong")
-  const strongMatches = matchNotifications.filter(match => 
-    match.opportunity_score && match.opportunity_score > 7.0
+  const strongMatches = matchNotifications.filter(
+    (match) => match.opportunity_score && match.opportunity_score > 7.0
   ).length;
 
   return {
-    subject_suffix: hasNotifications 
+    subject_suffix: hasNotifications
       ? `${report.notification_count} new opportunities`
       : "Network growing",
-    user_name_greeting: user.full_name ? ` ${user.full_name}` : '',
-    user_email: user.email || '',
-    testing_notice: emailOverride 
+    user_name_greeting: user.full_name ? ` ${user.full_name}` : "",
+    user_email: user.email || "",
+    testing_notice: emailOverride
       ? '<div class="testing-notice"><strong>🧪 Testing Mode:</strong> This email was sent to an override address for testing purposes.</div>'
-      : '',
-    main_content: hasNotifications 
-      ? buildDiscoveriesContent(report, matchNotifications, strongMatches, appUrl)
+      : "",
+    main_content: hasNotifications
+      ? buildDiscoveriesContent(
+          report,
+          matchNotifications,
+          strongMatches,
+          appUrl
+        )
       : buildNoDiscoveriesContent(appUrl),
     main_text_content: hasNotifications
       ? buildDiscoveriesTextContent(report, matchNotifications, appUrl)
       : buildNoDiscoveriesTextContent(appUrl),
     app_url: appUrl,
     report_date: reportDate,
-    current_year: new Date().getFullYear()
+    current_year: new Date().getFullYear(),
   };
 }
 
 // Helper function to build discoveries HTML content
-function buildDiscoveriesContent(report: any, matchNotifications: any[], strongMatches: number, appUrl: string): string {
+function buildDiscoveriesContent(
+  report: any,
+  matchNotifications: any[],
+  strongMatches: number,
+  appUrl: string
+): string {
   const summaryBox = `
     <div class="summary-box">
       <div class="summary-stat">
         <div class="summary-number">${report.notification_count}</div>
         <div class="summary-label">Notifications</div>
       </div>
-      ${strongMatches > 0 ? `
+      ${
+        strongMatches > 0
+          ? `
         <div class="summary-stat">
           <div class="summary-number">${strongMatches}</div>
           <div class="summary-label">Strong Matches</div>
         </div>
-      ` : ''}
+      `
+          : ""
+      }
       <div class="summary-stat">
         <div class="summary-number">${matchNotifications.length}</div>
         <div class="summary-label">Opportunities</div>
       </div>
     </div>`;
 
-  const discoveryCards = matchNotifications.slice(0, 5).map(match => {
-    const matchType = match.opportunity_score > 7.0 ? 'strong' : 
-                     match.opportunity_score > 5.0 ? 'exploratory' : 'future';
-    const userName = match.other_user?.full_name || 
-                     match.other_user?.handle || 
-                     'Someone interesting';
-    
-    return `
+  const discoveryCards = matchNotifications
+    .slice(0, 5)
+    .map((match) => {
+      const matchType =
+        match.opportunity_score > 7.0
+          ? "strong"
+          : match.opportunity_score > 5.0
+          ? "exploratory"
+          : "future";
+      const userName =
+        match.other_user?.full_name ||
+        match.other_user?.handle ||
+        "Someone interesting";
+
+      return `
       <div class="discovery">
         <div class="discovery-header">
           <div class="discovery-user">${userName}</div>
@@ -485,18 +522,23 @@ function buildDiscoveriesContent(report: any, matchNotifications: any[], strongM
           ${match.notification_reasoning}
         </div>
         
-        ${match.introduction_rationale ? `
+        ${
+          match.introduction_rationale
+            ? `
           <div class="synergies">
             <strong>Introduction rationale:</strong>
             <div class="synergy-item">💡 ${match.introduction_rationale}</div>
           </div>
-        ` : ''}
+        `
+            : ""
+        }
         
         <a href="${appUrl}/dashboard" class="intro-cta">
           View in Dashboard →
         </a>
       </div>`;
-  }).join('');
+    })
+    .join("");
 
   const agentInsights = buildAgentInsightsContent(report.agent_insights);
 
@@ -510,12 +552,13 @@ function buildDiscoveriesContent(report: any, matchNotifications: any[], strongM
 
 // Helper function to build agent insights HTML content
 function buildAgentInsightsContent(agentInsights: any): string {
-  if (!agentInsights || (
-    (!agentInsights.patterns_observed?.length) &&
-    (!agentInsights.top_opportunities?.length) &&
-    (!agentInsights.recommended_actions?.length)
-  )) {
-    return '';
+  if (
+    !agentInsights ||
+    (!agentInsights.patterns_observed?.length &&
+      !agentInsights.top_opportunities?.length &&
+      !agentInsights.recommended_actions?.length)
+  ) {
+    return "";
   }
 
   const sections = [];
@@ -525,9 +568,9 @@ function buildAgentInsightsContent(agentInsights: any): string {
       <div class="insight-section">
         <strong>Patterns I noticed:</strong>
         <div class="insight-list">
-          ${agentInsights.patterns_observed.map(pattern => 
-            `<div class="insight-item">${pattern}</div>`
-          ).join('')}
+          ${agentInsights.patterns_observed
+            .map((pattern) => `<div class="insight-item">${pattern}</div>`)
+            .join("")}
         </div>
       </div>
     `);
@@ -538,9 +581,9 @@ function buildAgentInsightsContent(agentInsights: any): string {
       <div class="insight-section" style="margin-top: 15px;">
         <strong>Top opportunities:</strong>
         <div class="insight-list">
-          ${agentInsights.top_opportunities.map(opp => 
-            `<div class="insight-item">${opp}</div>`
-          ).join('')}
+          ${agentInsights.top_opportunities
+            .map((opp) => `<div class="insight-item">${opp}</div>`)
+            .join("")}
         </div>
       </div>
     `);
@@ -551,9 +594,9 @@ function buildAgentInsightsContent(agentInsights: any): string {
       <div class="insight-section" style="margin-top: 15px;">
         <strong>Recommended next steps:</strong>
         <div class="insight-list">
-          ${agentInsights.recommended_actions.map(action => 
-            `<div class="insight-item">${action}</div>`
-          ).join('')}
+          ${agentInsights.recommended_actions
+            .map((action) => `<div class="insight-item">${action}</div>`)
+            .join("")}
         </div>
       </div>
     `);
@@ -562,7 +605,7 @@ function buildAgentInsightsContent(agentInsights: any): string {
   return `
     <div class="insights">
       <h3>🤖 Your Agent's Insights</h3>
-      ${sections.join('')}
+      ${sections.join("")}
     </div>
   `;
 }
@@ -582,21 +625,40 @@ function buildNoDiscoveriesContent(appUrl: string): string {
 }
 
 // Helper function to build discoveries text content
-function buildDiscoveriesTextContent(report: any, matchNotifications: any[], appUrl: string): string {
-  const discoveries = matchNotifications.slice(0, 5).map((match, i) => {
-    const userName = match.other_user?.full_name || match.other_user?.handle || 'Someone interesting';
-    return `${i + 1}. ${userName}
+function buildDiscoveriesTextContent(
+  report: any,
+  matchNotifications: any[],
+  appUrl: string
+): string {
+  const discoveries = matchNotifications
+    .slice(0, 5)
+    .map((match, i) => {
+      const userName =
+        match.other_user?.full_name ||
+        match.other_user?.handle ||
+        "Someone interesting";
+      return `${i + 1}. ${userName}
    ${match.notification_reasoning}
-   ${match.introduction_rationale ? `Introduction rationale: ${match.introduction_rationale}` : ''}
+   ${
+     match.introduction_rationale
+       ? `Introduction rationale: ${match.introduction_rationale}`
+       : ""
+   }
    View in dashboard: ${appUrl}/dashboard
 `;
-  }).join('\n');
+    })
+    .join("\n");
 
-  const recommendedActions = report.agent_insights?.recommended_actions?.length > 0 ? `
+  const recommendedActions =
+    report.agent_insights?.recommended_actions?.length > 0
+      ? `
 
 RECOMMENDED ACTIONS:
-${report.agent_insights.recommended_actions.map(action => `• ${action}`).join('\n')}
-` : '';
+${report.agent_insights.recommended_actions
+  .map((action) => `• ${action}`)
+  .join("\n")}
+`
+      : "";
 
   return `Your agent had ${report.notification_count} notifications last night and discovered ${matchNotifications.length} opportunities.
 
@@ -612,16 +674,22 @@ Update your story: ${appUrl}/dashboard`;
 }
 
 // Helper function to get template ID by name
-async function getTemplateIdByName(supabase: any, templateName: string): Promise<string | null> {
+async function getTemplateIdByName(
+  supabase: any,
+  templateName: string
+): Promise<string | null> {
   try {
     const { data, error } = await supabase
-      .from('email_templates')
-      .select('id')
-      .eq('name', templateName)
+      .from("email_templates")
+      .select("id")
+      .eq("name", templateName)
       .single();
 
     if (error) {
-      console.error(`Error fetching template by name "${templateName}":`, error);
+      console.error(
+        `Error fetching template by name "${templateName}":`,
+        error
+      );
       return null;
     }
 
