@@ -237,17 +237,20 @@ export class EmailService {
   async sendTemplatedEmail(templatedRequest: TemplatedEmailRequest): Promise<EmailResult> {
     const { to, subject, template, variables = {}, from } = templatedRequest;
 
-    // Process template variables
+    // Process template variables in both subject and HTML
+    let processedSubject = subject;
     let processedHtml = template;
+    
     Object.entries(variables).forEach(([key, value]) => {
       const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+      processedSubject = processedSubject.replace(regex, String(value));
       processedHtml = processedHtml.replace(regex, String(value));
     });
 
     // Send the processed email
     return this.sendEmail({
       to,
-      subject,
+      subject: processedSubject,
       html: processedHtml,
       from,
     });

@@ -9,11 +9,13 @@ This document provides a complete implementation plan for the new omniscient mor
 ### Current System Architecture
 
 The codebase has a sophisticated omniscient system located in:
+
 - **Core**: `supabase/functions/omniscient-system/`
 - **Frontend Service**: `src/services/omniscient.service.ts`
 - **Admin Dashboard**: `src/pages/OmniscientAdmin.tsx`
 
 ### Key Omniscient Tables
+
 - `omniscient_matches` - Analyzed user pairs with notification flags
 - `omniscient_conversations` - AI conversations between matched users
 - `omniscient_insights` - Match insights and opportunities
@@ -23,11 +25,13 @@ The codebase has a sophisticated omniscient system located in:
 ### Deprecated Morning Reports System
 
 The current system uses:
+
 - **Table**: `morning_reports` (lines 444-455 in schema)
 - **Functions**: `generate-morning-reports/index.ts` and `send-daily-reports/index.ts`
 - **Frontend**: `MorningReportSection.tsx` and `MorningReportView.tsx`
 
 **Key Issues with Current System:**
+
 1. Based on outdated `agent_conversations` table
 2. Duplicates logic that exists in omniscient system
 3. Uses deprecated conversation structure
@@ -38,6 +42,7 @@ The current system uses:
 **Critical Discovery**: The omniscient system already has notification logic built-in:
 
 From `analyze-matches.ts` (lines 111-113):
+
 ```typescript
 should_notify: analysis.notificationAssessment.shouldNotify,
 notification_score: analysis.notificationAssessment.notificationScore,
@@ -45,6 +50,7 @@ notification_reasoning: analysis.notificationAssessment.reasoning,
 ```
 
 **Match Data Structure** (from schema lines 510-535):
+
 - `should_notify` boolean - Whether match warrants user notification
 - `notification_score` numeric(3,2) - Notification priority (0-1)
 - `notification_reasoning` text - Why user should be notified
@@ -80,45 +86,45 @@ ALTER TABLE ONLY "public"."omniscient_morning_reports"
     ADD CONSTRAINT "omniscient_morning_reports_pkey" PRIMARY KEY ("id");
 
 ALTER TABLE ONLY "public"."omniscient_morning_reports"
-    ADD CONSTRAINT "omniscient_morning_reports_user_id_fkey" 
+    ADD CONSTRAINT "omniscient_morning_reports_user_id_fkey"
     FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE;
 
 ALTER TABLE ONLY "public"."omniscient_morning_reports"
-    ADD CONSTRAINT "unique_user_report_date" 
+    ADD CONSTRAINT "unique_user_report_date"
     UNIQUE ("user_id", "report_date");
 
 -- Indexes
-CREATE INDEX "idx_omniscient_morning_reports_user_date" 
-    ON "public"."omniscient_morning_reports" 
+CREATE INDEX "idx_omniscient_morning_reports_user_date"
+    ON "public"."omniscient_morning_reports"
     USING "btree" ("user_id", "report_date");
 
-CREATE INDEX "idx_omniscient_morning_reports_email_sent" 
-    ON "public"."omniscient_morning_reports" 
+CREATE INDEX "idx_omniscient_morning_reports_email_sent"
+    ON "public"."omniscient_morning_reports"
     USING "btree" ("email_sent", "report_date");
 
 -- RLS Policies
 ALTER TABLE "public"."omniscient_morning_reports" ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own morning reports" 
-    ON "public"."omniscient_morning_reports" 
-    FOR SELECT 
-    TO "authenticated" 
-    USING (("user_id" = ( SELECT "users"."id" FROM "public"."users" 
+CREATE POLICY "Users can view their own morning reports"
+    ON "public"."omniscient_morning_reports"
+    FOR SELECT
+    TO "authenticated"
+    USING (("user_id" = ( SELECT "users"."id" FROM "public"."users"
                          WHERE ("users"."auth_user_id" = "auth"."uid"()))));
 
-CREATE POLICY "Admins can view all morning reports" 
-    ON "public"."omniscient_morning_reports" 
-    FOR SELECT 
+CREATE POLICY "Admins can view all morning reports"
+    ON "public"."omniscient_morning_reports"
+    FOR SELECT
     USING ("public"."is_admin"());
 
-CREATE POLICY "System can manage morning reports" 
-    ON "public"."omniscient_morning_reports" 
-    TO "service_role" 
+CREATE POLICY "System can manage morning reports"
+    ON "public"."omniscient_morning_reports"
+    TO "service_role"
     USING (true);
 
 -- Trigger for updated_at
-CREATE OR REPLACE TRIGGER "update_omniscient_morning_reports_updated_at" 
-    BEFORE UPDATE ON "public"."omniscient_morning_reports" 
+CREATE OR REPLACE TRIGGER "update_omniscient_morning_reports_updated_at"
+    BEFORE UPDATE ON "public"."omniscient_morning_reports"
     FOR EACH ROW EXECUTE FUNCTION "public"."update_omniscient_updated_at"();
 ```
 
@@ -127,22 +133,25 @@ CREATE OR REPLACE TRIGGER "update_omniscient_morning_reports_updated_at"
 Create new action: `supabase/functions/omniscient-system/actions/generate-morning-reports.ts`
 
 ```typescript
-import { ActionContext, ActionResponse } from '../types.ts';
+import { ActionContext, ActionResponse } from "../types.ts";
 
-export default async function generateMorningReports(context: ActionContext): Promise<ActionResponse> {
+export default async function generateMorningReports(
+  context: ActionContext
+): Promise<ActionResponse> {
   const { supabase, params } = context;
   const { date, userId } = params;
 
   const reportDate = date ? new Date(date) : new Date();
-  const targetDate = reportDate.toISOString().split('T')[0];
+  const targetDate = reportDate.toISOString().split("T")[0];
 
   // Get matches that should notify users (created in last 24 hours)
   const startOfDay = new Date(reportDate);
   startOfDay.setHours(0, 0, 0, 0);
-  
+
   let query = supabase
-    .from('omniscient_matches')
-    .select(`
+    .from("omniscient_matches")
+    .select(
+      `
       *,
       user_a:users!user_a_id(id, handle, email),
       user_b:users!user_b_id(id, handle, email),
@@ -151,26 +160,28 @@ export default async function generateMorningReports(context: ActionContext): Pr
         relevance_score,
         insight:omniscient_insights(*)
       )
-    `)
-    .eq('should_notify', true)
-    .gte('created_at', startOfDay.toISOString());
+    `
+    )
+    .eq("should_notify", true)
+    .gte("created_at", startOfDay.toISOString());
 
   if (userId) {
     query = query.or(`user_a_id.eq.${userId},user_b_id.eq.${userId}`);
   }
 
   const { data: notificationMatches, error } = await query;
-  
-  if (error) throw new Error(`Failed to fetch notification matches: ${error.message}`);
+
+  if (error)
+    throw new Error(`Failed to fetch notification matches: ${error.message}`);
 
   if (!notificationMatches || notificationMatches.length === 0) {
     return {
       success: true,
-      summary: { 
-        message: 'No notification-worthy matches found', 
+      summary: {
+        message: "No notification-worthy matches found",
         date: targetDate,
-        reportsGenerated: 0 
-      }
+        reportsGenerated: 0,
+      },
     };
   }
 
@@ -183,16 +194,16 @@ export default async function generateMorningReports(context: ActionContext): Pr
       userReports.set(match.user_a_id, {
         user: match.user_a,
         notifications: [],
-        totalOpportunityScore: 0
+        totalOpportunityScore: 0,
       });
     }
-    
+
     userReports.get(match.user_a_id).notifications.push({
       match_id: match.id,
       other_user: {
         id: match.user_b.id,
         handle: match.user_b.handle,
-        email: match.user_b.email
+        email: match.user_b.email,
       },
       notification_score: match.notification_score,
       opportunity_score: match.opportunity_score,
@@ -202,26 +213,27 @@ export default async function generateMorningReports(context: ActionContext): Pr
       agent_summary: match.agent_summaries_agent_a_to_human_a,
       match_reasoning: match.match_reasoning,
       insights: match.insights || [],
-      created_at: match.created_at
+      created_at: match.created_at,
     });
-    
-    userReports.get(match.user_a_id).totalOpportunityScore += match.opportunity_score || 0;
+
+    userReports.get(match.user_a_id).totalOpportunityScore +=
+      match.opportunity_score || 0;
 
     // Process for user B
     if (!userReports.has(match.user_b_id)) {
       userReports.set(match.user_b_id, {
         user: match.user_b,
         notifications: [],
-        totalOpportunityScore: 0
+        totalOpportunityScore: 0,
       });
     }
-    
+
     userReports.get(match.user_b_id).notifications.push({
       match_id: match.id,
       other_user: {
         id: match.user_a.id,
         handle: match.user_a.handle,
-        email: match.user_a.email
+        email: match.user_a.email,
       },
       notification_score: match.notification_score,
       opportunity_score: match.opportunity_score,
@@ -231,49 +243,61 @@ export default async function generateMorningReports(context: ActionContext): Pr
       agent_summary: match.agent_summaries_agent_b_to_human_b,
       match_reasoning: match.match_reasoning,
       insights: match.insights || [],
-      created_at: match.created_at
+      created_at: match.created_at,
     });
-    
-    userReports.get(match.user_b_id).totalOpportunityScore += match.opportunity_score || 0;
+
+    userReports.get(match.user_b_id).totalOpportunityScore +=
+      match.opportunity_score || 0;
   }
 
   // Generate agent insights for each user report
   const reportsGenerated = [];
-  
+
   for (const [userId, reportData] of userReports) {
     try {
       // Sort notifications by notification score
-      reportData.notifications.sort((a, b) => (b.notification_score || 0) - (a.notification_score || 0));
+      reportData.notifications.sort(
+        (a, b) => (b.notification_score || 0) - (a.notification_score || 0)
+      );
 
       // Generate agent insights based on matches
-      const agentInsights = await generateAgentInsights(reportData.notifications, supabase);
+      const agentInsights = await generateAgentInsights(
+        reportData.notifications,
+        supabase
+      );
 
       // Create match summaries
       const matchSummaries = {
         total_matches: reportData.notifications.length,
-        average_opportunity_score: reportData.totalOpportunityScore / reportData.notifications.length,
+        average_opportunity_score:
+          reportData.totalOpportunityScore / reportData.notifications.length,
         top_outcomes: reportData.notifications.reduce((acc, notif) => {
-          acc[notif.predicted_outcome] = (acc[notif.predicted_outcome] || 0) + 1;
+          acc[notif.predicted_outcome] =
+            (acc[notif.predicted_outcome] || 0) + 1;
           return acc;
         }, {}),
-        highest_scoring_match: reportData.notifications[0]?.notification_score || 0
+        highest_scoring_match:
+          reportData.notifications[0]?.notification_score || 0,
       };
 
       // Store the morning report
       const { data: report, error: reportError } = await supabase
-        .from('omniscient_morning_reports')
-        .upsert({
-          user_id: userId,
-          report_date: targetDate,
-          match_notifications: reportData.notifications,
-          match_summaries: matchSummaries,
-          agent_insights: agentInsights,
-          notification_count: reportData.notifications.length,
-          total_opportunity_score: reportData.totalOpportunityScore,
-          email_sent: false
-        }, {
-          onConflict: 'user_id,report_date'
-        })
+        .from("omniscient_morning_reports")
+        .upsert(
+          {
+            user_id: userId,
+            report_date: targetDate,
+            match_notifications: reportData.notifications,
+            match_summaries: matchSummaries,
+            agent_insights: agentInsights,
+            notification_count: reportData.notifications.length,
+            total_opportunity_score: reportData.totalOpportunityScore,
+            email_sent: false,
+          },
+          {
+            onConflict: "user_id,report_date",
+          }
+        )
         .select()
         .single();
 
@@ -283,8 +307,9 @@ export default async function generateMorningReports(context: ActionContext): Pr
       }
 
       reportsGenerated.push(report);
-      console.log(`✅ Generated omniscient morning report for user ${reportData.user.handle}`);
-
+      console.log(
+        `✅ Generated omniscient morning report for user ${reportData.user.handle}`
+      );
     } catch (userError) {
       console.error(`Error processing report for user ${userId}:`, userError);
       continue;
@@ -298,11 +323,13 @@ export default async function generateMorningReports(context: ActionContext): Pr
       totalMatches: notificationMatches.length,
       usersWithReports: userReports.size,
       reportsGenerated: reportsGenerated.length,
-      averageNotificationsPerUser: reportsGenerated.length > 0 
-        ? reportsGenerated.reduce((sum, r) => sum + r.notification_count, 0) / reportsGenerated.length 
-        : 0
+      averageNotificationsPerUser:
+        reportsGenerated.length > 0
+          ? reportsGenerated.reduce((sum, r) => sum + r.notification_count, 0) /
+            reportsGenerated.length
+          : 0,
     },
-    data: reportsGenerated.slice(0, 5) // Return first 5 for preview
+    data: reportsGenerated.slice(0, 5), // Return first 5 for preview
   };
 }
 
@@ -312,40 +339,51 @@ async function generateAgentInsights(notifications: any[], supabase: any) {
     return {
       patterns_observed: [],
       top_opportunities: [],
-      recommended_actions: []
+      recommended_actions: [],
     };
   }
 
   // Extract patterns from the notifications
   const patterns = [];
-  const outcomes = notifications.map(n => n.predicted_outcome);
+  const outcomes = notifications.map((n) => n.predicted_outcome);
   const uniqueOutcomes = [...new Set(outcomes)];
-  
+
   if (uniqueOutcomes.length > 1) {
-    patterns.push(`Diverse match types detected: ${uniqueOutcomes.join(', ').toLowerCase()}`);
+    patterns.push(
+      `Diverse match types detected: ${uniqueOutcomes.join(", ").toLowerCase()}`
+    );
   }
-  
-  const highScoreMatches = notifications.filter(n => n.notification_score > 0.8);
+
+  const highScoreMatches = notifications.filter(
+    (n) => n.notification_score > 0.8
+  );
   if (highScoreMatches.length > 0) {
-    patterns.push(`${highScoreMatches.length} high-priority matches identified`);
+    patterns.push(
+      `${highScoreMatches.length} high-priority matches identified`
+    );
   }
 
   // Generate opportunities based on match reasoning
-  const opportunities = notifications.slice(0, 3).map(notif => 
-    `Explore collaboration with ${notif.other_user.handle} - ${notif.notification_reasoning?.slice(0, 60)}...`
-  );
+  const opportunities = notifications
+    .slice(0, 3)
+    .map(
+      (notif) =>
+        `Explore collaboration with ${
+          notif.other_user.handle
+        } - ${notif.notification_reasoning?.slice(0, 60)}...`
+    );
 
   // Generate recommended actions
   const actions = [
-    'Review top-scoring matches first for immediate opportunities',
-    'Schedule follow-up conversations with strong matches',
-    'Update your profile to attract more high-quality matches'
+    "Review top-scoring matches first for immediate opportunities",
+    "Schedule follow-up conversations with strong matches",
+    "Update your profile to attract more high-quality matches",
   ];
 
   return {
     patterns_observed: patterns.slice(0, 3),
     top_opportunities: opportunities.slice(0, 3),
-    recommended_actions: actions.slice(0, 3)
+    recommended_actions: actions.slice(0, 3),
   };
 }
 ```
@@ -409,7 +447,7 @@ async getMorningReports(filters?: {
 
 async getUserMorningReport(userId: string, date?: string): Promise<OmniscientMorningReport | null> {
   const targetDate = date || new Date().toISOString().split('T')[0];
-  
+
   const { data, error } = await supabase
     .from("omniscient_morning_reports")
     .select("*")
@@ -476,26 +514,43 @@ export interface AgentInsights {
 Update `src/components/dashboard/MorningReportSection.tsx`:
 
 ```typescript
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Sparkles, Mail, ExternalLink, ChevronRight, Sun, User, MessageSquare, ArrowRight } from 'lucide-react';
-import { omniscientService, OmniscientMorningReport, MatchNotification } from '@/services/omniscient.service';
-import { toast } from 'sonner';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Sparkles,
+  Mail,
+  ExternalLink,
+  ChevronRight,
+  Sun,
+  User,
+  MessageSquare,
+  ArrowRight,
+} from "lucide-react";
+import {
+  omniscientService,
+  OmniscientMorningReport,
+  MatchNotification,
+} from "@/services/omniscient.service";
+import { toast } from "sonner";
 
 interface MorningReportSectionProps {
   userId: string;
   userStatus: string;
 }
 
-export const MorningReportSection: React.FC<MorningReportSectionProps> = ({ userId, userStatus }) => {
-  const [latestReport, setLatestReport] = useState<OmniscientMorningReport | null>(null);
+export const MorningReportSection: React.FC<MorningReportSectionProps> = ({
+  userId,
+  userStatus,
+}) => {
+  const [latestReport, setLatestReport] =
+    useState<OmniscientMorningReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [showSample, setShowSample] = useState(false);
 
   useEffect(() => {
-    if (userStatus === 'APPROVED') {
+    if (userStatus === "APPROVED") {
       fetchLatestReport();
     } else {
       setLoading(false);
@@ -506,7 +561,7 @@ export const MorningReportSection: React.FC<MorningReportSectionProps> = ({ user
   const fetchLatestReport = async () => {
     try {
       const report = await omniscientService.getUserMorningReport(userId);
-      
+
       if (report && report.match_notifications.length > 0) {
         setLatestReport(report);
         setShowSample(false);
@@ -514,7 +569,7 @@ export const MorningReportSection: React.FC<MorningReportSectionProps> = ({ user
         setShowSample(true);
       }
     } catch (err) {
-      console.error('Error fetching morning report:', err);
+      console.error("Error fetching morning report:", err);
       setShowSample(true);
     } finally {
       setLoading(false);
@@ -523,12 +578,24 @@ export const MorningReportSection: React.FC<MorningReportSectionProps> = ({ user
 
   const getMatchTypeBadge = (outcome: string) => {
     switch (outcome) {
-      case 'STRONG_MATCH':
-        return <Badge className="bg-terminal-green/20 text-terminal-green border-terminal-green/30">Strong Match</Badge>;
-      case 'EXPLORATORY':
-        return <Badge className="bg-terminal-cyan/20 text-terminal-cyan border-terminal-cyan/30">Exploratory</Badge>;
-      case 'FUTURE_POTENTIAL':
-        return <Badge className="bg-terminal-yellow/20 text-terminal-yellow border-terminal-yellow/30">Future Potential</Badge>;
+      case "STRONG_MATCH":
+        return (
+          <Badge className="bg-terminal-green/20 text-terminal-green border-terminal-green/30">
+            Strong Match
+          </Badge>
+        );
+      case "EXPLORATORY":
+        return (
+          <Badge className="bg-terminal-cyan/20 text-terminal-cyan border-terminal-cyan/30">
+            Exploratory
+          </Badge>
+        );
+      case "FUTURE_POTENTIAL":
+        return (
+          <Badge className="bg-terminal-yellow/20 text-terminal-yellow border-terminal-yellow/30">
+            Future Potential
+          </Badge>
+        );
       default:
         return <Badge variant="outline">Match</Badge>;
     }
@@ -548,7 +615,9 @@ export const MorningReportSection: React.FC<MorningReportSectionProps> = ({ user
     );
   }
 
-  const notifications = showSample ? SAMPLE_NOTIFICATIONS : (latestReport?.match_notifications || []);
+  const notifications = showSample
+    ? SAMPLE_NOTIFICATIONS
+    : latestReport?.match_notifications || [];
   const isPreview = showSample || !latestReport;
 
   return (
@@ -569,10 +638,13 @@ export const MorningReportSection: React.FC<MorningReportSectionProps> = ({ user
           </CardTitle>
         </div>
         <p className="text-terminal-text-muted">
-          {isPreview 
+          {isPreview
             ? "Here's what your morning reports will look like"
-            : `${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`
-          }
+            : `${new Date().toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}`}
         </p>
       </CardHeader>
 
@@ -581,14 +653,20 @@ export const MorningReportSection: React.FC<MorningReportSectionProps> = ({ user
         {!isPreview && latestReport?.match_summaries && (
           <div className="grid grid-cols-3 gap-4 p-4 bg-terminal-bg/80 rounded-lg border border-terminal-cyan/20">
             <div className="text-center">
-              <p className="text-2xl font-mono text-terminal-cyan">{latestReport.notification_count}</p>
+              <p className="text-2xl font-mono text-terminal-cyan">
+                {latestReport.notification_count}
+              </p>
               <p className="text-xs text-terminal-text-muted">New Matches</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-mono text-terminal-green">
-                {latestReport.match_summaries.average_opportunity_score.toFixed(1)}
+                {latestReport.match_summaries.average_opportunity_score.toFixed(
+                  1
+                )}
               </p>
-              <p className="text-xs text-terminal-text-muted">Avg Opportunity</p>
+              <p className="text-xs text-terminal-text-muted">
+                Avg Opportunity
+              </p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-mono text-terminal-yellow">
@@ -605,69 +683,79 @@ export const MorningReportSection: React.FC<MorningReportSectionProps> = ({ user
             <Sparkles className="w-5 h-5" />
             New Opportunities
           </h3>
-          
+
           {notifications.length > 0 ? (
-            notifications.slice(0, 2).map((notification: MatchNotification, index: number) => (
-              <div 
-                key={notification.match_id || index} 
-                className="p-5 bg-terminal-bg/80 rounded-lg border border-terminal-cyan/20 hover:border-terminal-cyan/40 transition-all group"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-terminal-cyan/20 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-terminal-cyan" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-mono text-terminal-text">{notification.other_user.handle}</p>
-                        <span className="text-terminal-text-muted">•</span>
-                        <p className="text-sm text-terminal-text-muted">
-                          Score: {(notification.notification_score * 100).toFixed(0)}%
+            notifications
+              .slice(0, 2)
+              .map((notification: MatchNotification, index: number) => (
+                <div
+                  key={notification.match_id || index}
+                  className="p-5 bg-terminal-bg/80 rounded-lg border border-terminal-cyan/20 hover:border-terminal-cyan/40 transition-all group"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-terminal-cyan/20 rounded-full flex items-center justify-center">
+                        <User className="w-5 h-5 text-terminal-cyan" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-mono text-terminal-text">
+                            {notification.other_user.handle}
+                          </p>
+                          <span className="text-terminal-text-muted">•</span>
+                          <p className="text-sm text-terminal-text-muted">
+                            Score:{" "}
+                            {(notification.notification_score * 100).toFixed(0)}
+                            %
+                          </p>
+                        </div>
+                        <p className="text-sm text-terminal-text-muted mt-0.5">
+                          {notification.notification_reasoning}
                         </p>
                       </div>
-                      <p className="text-sm text-terminal-text-muted mt-0.5">
-                        {notification.notification_reasoning}
-                      </p>
                     </div>
+                    {getMatchTypeBadge(notification.predicted_outcome)}
                   </div>
-                  {getMatchTypeBadge(notification.predicted_outcome)}
-                </div>
 
-                {/* Introduction Rationale */}
-                <div className="p-3 bg-terminal-bg rounded border border-terminal-text/10 mb-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <MessageSquare className="w-4 h-4 text-terminal-yellow" />
-                    <span className="text-xs font-mono text-terminal-yellow">Why This Match Matters</span>
+                  {/* Introduction Rationale */}
+                  <div className="p-3 bg-terminal-bg rounded border border-terminal-text/10 mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MessageSquare className="w-4 h-4 text-terminal-yellow" />
+                      <span className="text-xs font-mono text-terminal-yellow">
+                        Why This Match Matters
+                      </span>
+                    </div>
+                    <p className="text-sm text-terminal-text-muted">
+                      {notification.introduction_rationale}
+                    </p>
                   </div>
-                  <p className="text-sm text-terminal-text-muted">
-                    {notification.introduction_rationale}
-                  </p>
-                </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
-                    className="bg-terminal-green text-terminal-bg hover:bg-terminal-cyan font-mono group-hover:scale-105 transition-transform"
-                    disabled={isPreview}
-                  >
-                    <Mail className="w-4 h-4 mr-1" />
-                    Request Introduction
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg"
-                    disabled={isPreview}
-                  >
-                    View Match Details
-                  </Button>
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="bg-terminal-green text-terminal-bg hover:bg-terminal-cyan font-mono group-hover:scale-105 transition-transform"
+                      disabled={isPreview}
+                    >
+                      <Mail className="w-4 h-4 mr-1" />
+                      Request Introduction
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg"
+                      disabled={isPreview}
+                    >
+                      View Match Details
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))
+              ))
           ) : (
             <div className="text-center py-8">
-              <p className="text-terminal-text-muted">No new matches today. Check back tomorrow!</p>
+              <p className="text-terminal-text-muted">
+                No new matches today. Check back tomorrow!
+              </p>
             </div>
           )}
         </div>
@@ -679,18 +767,22 @@ export const MorningReportSection: React.FC<MorningReportSectionProps> = ({ user
               <Brain className="w-4 h-4" />
               Agent Insights
             </h4>
-            {latestReport.agent_insights.top_opportunities.map((opportunity, idx) => (
-              <div key={idx} className="flex items-start gap-2 text-sm mb-2">
-                <ChevronRight className="w-4 h-4 text-terminal-purple mt-0.5 flex-shrink-0" />
-                <span className="text-terminal-text-muted">{opportunity}</span>
-              </div>
-            ))}
+            {latestReport.agent_insights.top_opportunities.map(
+              (opportunity, idx) => (
+                <div key={idx} className="flex items-start gap-2 text-sm mb-2">
+                  <ChevronRight className="w-4 h-4 text-terminal-purple mt-0.5 flex-shrink-0" />
+                  <span className="text-terminal-text-muted">
+                    {opportunity}
+                  </span>
+                </div>
+              )
+            )}
           </div>
         )}
 
         {/* View Full Report Button */}
         <div className="pt-4">
-          <Button 
+          <Button
             className="w-full bg-terminal-bg border-2 border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg font-mono group"
             disabled={isPreview}
           >
@@ -699,7 +791,8 @@ export const MorningReportSection: React.FC<MorningReportSectionProps> = ({ user
           </Button>
           {isPreview && (
             <p className="text-center text-xs text-terminal-text-muted mt-2">
-              Complete your profile setup to start receiving real morning reports
+              Complete your profile setup to start receiving real morning
+              reports
             </p>
           )}
         </div>
@@ -715,18 +808,21 @@ const SAMPLE_NOTIFICATIONS: MatchNotification[] = [
     other_user: {
       id: "sample-user-1",
       handle: "@sarahchen",
-      email: "sarah@example.com"
+      email: "sarah@example.com",
     },
     notification_score: 0.85,
     opportunity_score: 0.78,
     predicted_outcome: "STRONG_MATCH",
     notification_reasoning: "High compatibility in AI/ML collaboration",
-    introduction_rationale: "Based on your shared interest in ethical AI development, this could be a valuable connection for your upcoming privacy-first AI project.",
-    agent_summary: "Sarah brings complementary technical expertise in ML infrastructure.",
-    match_reasoning: "Strong alignment in technical focus and collaboration style",
+    introduction_rationale:
+      "Based on your shared interest in ethical AI development, this could be a valuable connection for your upcoming privacy-first AI project.",
+    agent_summary:
+      "Sarah brings complementary technical expertise in ML infrastructure.",
+    match_reasoning:
+      "Strong alignment in technical focus and collaboration style",
     insights: [],
-    created_at: new Date().toISOString()
-  }
+    created_at: new Date().toISOString(),
+  },
 ];
 ```
 
@@ -754,105 +850,39 @@ Add morning reports management to the omniscient admin dashboard by updating `sr
 const fetchMorningReportsStats = async () => {
   try {
     const reports = await omniscientService.getMorningReports({ limit: 100 });
-    const todayReports = reports.filter(r => r.report_date === new Date().toISOString().split('T')[0]);
-    
+    const todayReports = reports.filter(
+      (r) => r.report_date === new Date().toISOString().split("T")[0]
+    );
+
     return {
       totalToday: todayReports.length,
-      averageNotifications: todayReports.reduce((sum, r) => sum + r.notification_count, 0) / todayReports.length || 0,
-      emailsSent: todayReports.filter(r => r.email_sent).length
+      averageNotifications:
+        todayReports.reduce((sum, r) => sum + r.notification_count, 0) /
+          todayReports.length || 0,
+      emailsSent: todayReports.filter((r) => r.email_sent).length,
     };
   } catch (error) {
-    console.error('Error fetching morning reports stats:', error);
+    console.error("Error fetching morning reports stats:", error);
     return { totalToday: 0, averageNotifications: 0, emailsSent: 0 };
   }
 };
 ```
 
-## Migration Strategy
-
-### Step 1: Data Migration (Optional)
-If needed, migrate existing `morning_reports` data:
-
-```sql
--- Optional: Migrate old morning reports data
-INSERT INTO omniscient_morning_reports (
-  user_id, 
-  report_date, 
-  match_notifications, 
-  agent_insights,
-  notification_count,
-  email_sent,
-  created_at
-)
-SELECT 
-  user_id,
-  report_date,
-  discoveries as match_notifications,
-  activity_summary as agent_insights,
-  COALESCE(jsonb_array_length(discoveries), 0) as notification_count,
-  email_sent,
-  created_at
-FROM morning_reports
-WHERE discoveries IS NOT NULL;
-```
-
-### Step 2: Graceful Transition
-1. Deploy new omniscient morning reports system
-2. Run both systems in parallel for testing
-3. Switch frontend to use new system
-4. Deprecate old functions (keep for reference)
-
-### Step 3: Cleanup
-After successful transition:
-1. Remove old morning reports frontend components
-2. Add deprecation notices to old functions
-3. Update documentation
-
-## Testing Strategy
-
-### Unit Tests
-1. Test `generate-morning-reports.ts` action with various match scenarios
-2. Test service layer methods with mock data
-3. Test frontend components with sample data
-
-### Integration Tests
-1. Test end-to-end morning report generation
-2. Test notification filtering logic
-3. Test database constraints and policies
-
-### Manual Testing Scenarios
-1. User with no matches - should show empty state
-2. User with multiple high-scoring matches - should prioritize correctly
-3. User with low-scoring matches - should filter appropriately
-4. Multiple users - should generate separate reports
-
-## Monitoring & Analytics
-
-### Key Metrics to Track
-1. Reports generated per day
-2. Average notifications per user
-3. Match notification conversion rates
-4. User engagement with morning reports
-5. Email open rates (if email integration is added)
-
-### Logging
-- Morning report generation times
-- Match filtering effectiveness
-- User interaction patterns
-- System errors and failures
-
 ## Future Enhancements
 
 ### Email Integration
+
 - Adapt existing `send-daily-reports` function for new data structure
 - Use omniscient morning reports table instead of old morning reports
 - Leverage introduction rationales for better email content
 
 ### Real-time Updates
+
 - WebSocket integration for live morning report updates
 - Push notifications for high-priority matches
 
 ### AI Improvements
+
 - Enhanced agent insights using LLM analysis
 - Personalized introduction suggestions
 - Dynamic notification scoring based on user behavior
@@ -860,28 +890,33 @@ After successful transition:
 ## File Checklist
 
 ### Database
+
 - [ ] Create migration file for `omniscient_morning_reports` table
 - [ ] Add RLS policies
 - [ ] Create indexes
 - [ ] Add trigger for updated_at
 
 ### Backend
+
 - [ ] Create `generate-morning-reports.ts` action
 - [ ] Update omniscient system index.ts
 - [ ] Test edge function locally
 
 ### Service Layer
+
 - [ ] Add methods to `omniscient.service.ts`
 - [ ] Add TypeScript interfaces
 - [ ] Test service methods
 
 ### Frontend
+
 - [ ] Update `MorningReportSection.tsx`
 - [ ] Update `MorningReportView.tsx` (if needed)
 - [ ] Test with sample data
 - [ ] Update admin dashboard
 
 ### Documentation
+
 - [ ] Update API documentation
 - [ ] Add migration notes
 - [ ] Update system architecture diagrams
@@ -891,6 +926,7 @@ After successful transition:
 This implementation leverages the existing omniscient system's sophisticated match analysis to create a more intelligent and relevant morning reports system. By using the `should_notify` flag and `notification_score` from matches, we ensure users only receive notifications about truly valuable opportunities.
 
 The new system provides:
+
 - **Better relevance**: Uses AI-driven notification scoring
 - **Richer data**: Includes introduction rationales and agent summaries
 - **Consistency**: Integrates with existing omniscient architecture

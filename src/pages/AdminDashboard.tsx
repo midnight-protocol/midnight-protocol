@@ -128,7 +128,7 @@ const AdminDashboard = () => {
                   className="border-terminal-purple text-terminal-purple hover:bg-terminal-purple hover:text-terminal-bg"
                   size="sm"
                 >
-                  Omniscient System
+                  Matching Dashboard
                 </Button>
               </div>
             </div>

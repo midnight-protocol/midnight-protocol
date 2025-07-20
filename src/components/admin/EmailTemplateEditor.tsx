@@ -81,11 +81,15 @@ interface TestEmailFormData {
 
 const EmailTemplateEditor = () => {
   const queryClient = useQueryClient();
-  const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
-  const [editingTemplate, setEditingTemplate] = useState<Partial<EmailTemplate> | null>(null);
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<EmailTemplate | null>(null);
+  const [editingTemplate, setEditingTemplate] =
+    useState<Partial<EmailTemplate> | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [selectedVersion, setSelectedVersion] = useState<EmailVersion | null>(null);
+  const [selectedVersion, setSelectedVersion] = useState<EmailVersion | null>(
+    null
+  );
   const [testEmailData, setTestEmailData] = useState<TestEmailFormData>({
     testEmail: "",
     variables: {},
@@ -93,10 +97,16 @@ const EmailTemplateEditor = () => {
   const [showTestDialog, setShowTestDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importData, setImportData] = useState("");
-  const [importStrategy, setImportStrategy] = useState<"skip" | "overwrite" | "create_new">("skip");
-  const [previewMode, setPreviewMode] = useState<"subject" | "html" | "text">("html");
+  const [importStrategy, setImportStrategy] = useState<
+    "skip" | "overwrite" | "create_new"
+  >("skip");
+  const [previewMode, setPreviewMode] = useState<"subject" | "html" | "text">(
+    "html"
+  );
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
-  const [previewVariables, setPreviewVariables] = useState<Record<string, string>>({});
+  const [previewVariables, setPreviewVariables] = useState<
+    Record<string, string>
+  >({});
 
   // Queries
   const { data: templates = [], isLoading: templatesLoading } = useQuery({
@@ -134,7 +144,9 @@ const EmailTemplateEditor = () => {
       adminAPIService.updateEmailTemplate(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["emailTemplates"] });
-      queryClient.invalidateQueries({ queryKey: ["emailTemplate", selectedTemplate?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["emailTemplate", selectedTemplate?.id],
+      });
       setEditingTemplate(null);
       toast.success("Email template updated successfully");
     },
@@ -144,14 +156,20 @@ const EmailTemplateEditor = () => {
   });
 
   const testEmailMutation = useMutation({
-    mutationFn: ({ templateId, testEmail, variables }: {
+    mutationFn: ({
+      templateId,
+      testEmail,
+      variables,
+    }: {
       templateId: string;
       testEmail: string;
       variables: Record<string, any>;
     }) => adminAPIService.sendTestEmail(templateId, testEmail, variables),
     onSuccess: (result) => {
       if (result.success) {
-        toast.success(`Test email sent successfully! Message ID: ${result.messageId}`);
+        toast.success(
+          `Test email sent successfully! Message ID: ${result.messageId}`
+        );
       } else {
         toast.error(`Failed to send test email: ${result.error}`);
       }
@@ -163,14 +181,21 @@ const EmailTemplateEditor = () => {
   });
 
   const restoreMutation = useMutation({
-    mutationFn: ({ templateId, versionId, changeNotes }: {
+    mutationFn: ({
+      templateId,
+      versionId,
+      changeNotes,
+    }: {
       templateId: string;
       versionId: string;
       changeNotes: string;
-    }) => adminAPIService.restoreEmailVersion(templateId, versionId, changeNotes),
+    }) =>
+      adminAPIService.restoreEmailVersion(templateId, versionId, changeNotes),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["emailTemplates"] });
-      queryClient.invalidateQueries({ queryKey: ["emailTemplate", selectedTemplate?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["emailTemplate", selectedTemplate?.id],
+      });
       toast.success("Version restored successfully");
       setSelectedVersion(null);
     },
@@ -180,13 +205,18 @@ const EmailTemplateEditor = () => {
   });
 
   const exportMutation = useMutation({
-    mutationFn: (templateIds?: string[]) => adminAPIService.exportEmailTemplates(templateIds),
+    mutationFn: (templateIds?: string[]) =>
+      adminAPIService.exportEmailTemplates(templateIds),
     onSuccess: (data) => {
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `email-templates-${new Date().toISOString().split("T")[0]}.json`;
+      a.download = `email-templates-${
+        new Date().toISOString().split("T")[0]
+      }.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -199,12 +229,19 @@ const EmailTemplateEditor = () => {
   });
 
   const importMutation = useMutation({
-    mutationFn: ({ data, strategy }: { data: any; strategy: "skip" | "overwrite" | "create_new" }) =>
-      adminAPIService.importEmailTemplates(data, strategy),
+    mutationFn: ({
+      data,
+      strategy,
+    }: {
+      data: any;
+      strategy: "skip" | "overwrite" | "create_new";
+    }) => adminAPIService.importEmailTemplates(data, strategy),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["emailTemplates"] });
       toast.success(
-        `Import completed: ${result.imported} imported, ${result.skipped} skipped${
+        `Import completed: ${result.imported} imported, ${
+          result.skipped
+        } skipped${
           result.errors.length > 0 ? `, ${result.errors.length} errors` : ""
         }`
       );
@@ -233,16 +270,25 @@ const EmailTemplateEditor = () => {
   };
 
   const getAllVariables = (template: Partial<EmailTemplate>): string[] => {
-    const subjectVars = template.subject_template ? extractVariables(template.subject_template) : [];
-    const htmlVars = template.html_template ? extractVariables(template.html_template) : [];
-    const textVars = template.text_template ? extractVariables(template.text_template) : [];
+    const subjectVars = template.subject_template
+      ? extractVariables(template.subject_template)
+      : [];
+    const htmlVars = template.html_template
+      ? extractVariables(template.html_template)
+      : [];
+    const textVars = template.text_template
+      ? extractVariables(template.text_template)
+      : [];
     return [...new Set([...subjectVars, ...htmlVars, ...textVars])];
   };
 
-  const processPreview = (template: string, variables: Record<string, string>): string => {
+  const processPreview = (
+    template: string,
+    variables: Record<string, string>
+  ): string => {
     let processed = template;
     Object.entries(variables).forEach(([key, value]) => {
-      const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g');
+      const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, "g");
       processed = processed.replace(regex, value || `{{${key}}}`);
     });
     return processed;
@@ -272,8 +318,15 @@ const EmailTemplateEditor = () => {
   };
 
   const handleSave = () => {
-    if (!editingTemplate || !editingTemplate.name || !editingTemplate.subject_template || !editingTemplate.html_template) {
-      toast.error("Please fill in required fields: name, subject template, and HTML template");
+    if (
+      !editingTemplate ||
+      !editingTemplate.name ||
+      !editingTemplate.subject_template ||
+      !editingTemplate.html_template
+    ) {
+      toast.error(
+        "Please fill in required fields: name, subject template, and HTML template"
+      );
       return;
     }
 
@@ -301,11 +354,12 @@ const EmailTemplateEditor = () => {
 
   const handleTestEmail = () => {
     if (!selectedTemplate) return;
-    
+
     const allVariables = getAllVariables(selectedTemplate);
     const variables: Record<string, string> = {};
-    allVariables.forEach(variable => {
-      variables[variable] = testEmailData.variables[variable] || `[${variable}]`;
+    allVariables.forEach((variable) => {
+      variables[variable] =
+        testEmailData.variables[variable] || `[${variable}]`;
     });
 
     setTestEmailData({ ...testEmailData, variables });
@@ -327,7 +381,7 @@ const EmailTemplateEditor = () => {
 
   const handleRestoreVersion = (version: EmailVersion) => {
     if (!selectedTemplate) return;
-    
+
     const changeNotes = prompt("Enter change notes for this restoration:");
     if (changeNotes === null) return;
 
@@ -353,31 +407,33 @@ const EmailTemplateEditor = () => {
 
   const handlePreview = () => {
     if (!selectedTemplate) return;
-    
+
     // Initialize preview variables with defaults
     const allVariables = getAllVariables(selectedTemplate);
     const defaultVariables: Record<string, string> = {};
-    allVariables.forEach(variable => {
+    allVariables.forEach((variable) => {
       defaultVariables[variable] = `[${variable}]`;
     });
-    
+
     setPreviewVariables(defaultVariables);
     setShowPreviewDialog(true);
   };
 
   const emailTypes = [
     "transactional",
-    "marketing", 
+    "marketing",
     "notification",
     "system",
     "welcome",
-    "reminder"
+    "reminder",
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-2xl font-bold text-terminal-green">Email Templates</h2>
+        <h2 className="text-2xl font-bold text-terminal-green">
+          Email Templates
+        </h2>
         <div className="flex gap-2">
           <Button
             onClick={handleCreateNew}
@@ -416,9 +472,13 @@ const EmailTemplateEditor = () => {
           </CardHeader>
           <CardContent className="space-y-2 max-h-96 overflow-y-auto">
             {templatesLoading ? (
-              <div className="text-terminal-text-muted">Loading templates...</div>
+              <div className="text-terminal-text-muted">
+                Loading templates...
+              </div>
             ) : templates.length === 0 ? (
-              <div className="text-terminal-text-muted">No email templates found</div>
+              <div className="text-terminal-text-muted">
+                No email templates found
+              </div>
             ) : (
               templates.map((template: EmailTemplate) => (
                 <div
@@ -512,7 +572,9 @@ const EmailTemplateEditor = () => {
                       onClick={handleSave}
                       size="sm"
                       className="bg-terminal-green text-terminal-bg hover:bg-terminal-green/80"
-                      disabled={createMutation.isPending || updateMutation.isPending}
+                      disabled={
+                        createMutation.isPending || updateMutation.isPending
+                      }
                     >
                       <Save className="w-4 h-4 mr-1" />
                       Save
@@ -542,7 +604,10 @@ const EmailTemplateEditor = () => {
                       id="name"
                       value={editingTemplate.name || ""}
                       onChange={(e) =>
-                        setEditingTemplate({ ...editingTemplate, name: e.target.value })
+                        setEditingTemplate({
+                          ...editingTemplate,
+                          name: e.target.value,
+                        })
                       }
                       className="bg-terminal-bg border-terminal-green/30 text-terminal-text"
                       placeholder="e.g., Welcome Email"
@@ -553,9 +618,15 @@ const EmailTemplateEditor = () => {
                     <SearchableSelect
                       value={editingTemplate.category || ""}
                       onValueChange={(value) =>
-                        setEditingTemplate({ ...editingTemplate, category: value })
+                        setEditingTemplate({
+                          ...editingTemplate,
+                          category: value,
+                        })
                       }
-                      options={categories.map((cat: string) => ({ value: cat, label: cat }))}
+                      options={categories.map((cat: string) => ({
+                        value: cat,
+                        label: cat,
+                      }))}
                       placeholder="Select category"
                       className="bg-terminal-bg border-terminal-green/30"
                     />
@@ -568,7 +639,10 @@ const EmailTemplateEditor = () => {
                     id="description"
                     value={editingTemplate.description || ""}
                     onChange={(e) =>
-                      setEditingTemplate({ ...editingTemplate, description: e.target.value })
+                      setEditingTemplate({
+                        ...editingTemplate,
+                        description: e.target.value,
+                      })
                     }
                     className="bg-terminal-bg border-terminal-green/30 text-terminal-text"
                     placeholder="Template description"
@@ -581,7 +655,10 @@ const EmailTemplateEditor = () => {
                     <Select
                       value={editingTemplate.email_type || "transactional"}
                       onValueChange={(value) =>
-                        setEditingTemplate({ ...editingTemplate, email_type: value })
+                        setEditingTemplate({
+                          ...editingTemplate,
+                          email_type: value,
+                        })
                       }
                     >
                       <SelectTrigger className="bg-terminal-bg border-terminal-green/30">
@@ -597,12 +674,17 @@ const EmailTemplateEditor = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="default_from_address">Default From Address</Label>
+                    <Label htmlFor="default_from_address">
+                      Default From Address
+                    </Label>
                     <Input
                       id="default_from_address"
                       value={editingTemplate.default_from_address || ""}
                       onChange={(e) =>
-                        setEditingTemplate({ ...editingTemplate, default_from_address: e.target.value })
+                        setEditingTemplate({
+                          ...editingTemplate,
+                          default_from_address: e.target.value,
+                        })
                       }
                       className="bg-terminal-bg border-terminal-green/30 text-terminal-text"
                       placeholder="noreply@midnightprotocol.org"
@@ -617,40 +699,51 @@ const EmailTemplateEditor = () => {
                     <TabsTrigger value="html">HTML</TabsTrigger>
                     <TabsTrigger value="text">Text (Optional)</TabsTrigger>
                   </TabsList>
-                  
+
                   <TabsContent value="subject" className="space-y-2">
                     <Label htmlFor="subject_template">Subject Template *</Label>
                     <Input
                       id="subject_template"
                       value={editingTemplate.subject_template || ""}
                       onChange={(e) =>
-                        setEditingTemplate({ ...editingTemplate, subject_template: e.target.value })
+                        setEditingTemplate({
+                          ...editingTemplate,
+                          subject_template: e.target.value,
+                        })
                       }
-                      className="bg-terminal-bg border-terminal-green/30 text-terminal-text"
+                      className="bg-terminal-bg border-terminal-green/30 text-terminal-text text-left"
                       placeholder="Welcome to {{company_name}}, {{name}}!"
                     />
                   </TabsContent>
-                  
+
                   <TabsContent value="html" className="space-y-2">
                     <Label htmlFor="html_template">HTML Template *</Label>
                     <Textarea
                       id="html_template"
                       value={editingTemplate.html_template || ""}
                       onChange={(e) =>
-                        setEditingTemplate({ ...editingTemplate, html_template: e.target.value })
+                        setEditingTemplate({
+                          ...editingTemplate,
+                          html_template: e.target.value,
+                        })
                       }
                       className="bg-terminal-bg border-terminal-green/30 text-terminal-text font-mono text-sm min-h-[300px]"
                       placeholder="<h1>Hello {{name}}!</h1><p>Welcome to our platform.</p>"
                     />
                   </TabsContent>
-                  
+
                   <TabsContent value="text" className="space-y-2">
-                    <Label htmlFor="text_template">Plain Text Template (Optional)</Label>
+                    <Label htmlFor="text_template">
+                      Plain Text Template (Optional)
+                    </Label>
                     <Textarea
                       id="text_template"
                       value={editingTemplate.text_template || ""}
                       onChange={(e) =>
-                        setEditingTemplate({ ...editingTemplate, text_template: e.target.value })
+                        setEditingTemplate({
+                          ...editingTemplate,
+                          text_template: e.target.value,
+                        })
                       }
                       className="bg-terminal-bg border-terminal-green/30 text-terminal-text font-mono text-sm min-h-[200px]"
                       placeholder="Hello {{name}}! Welcome to our platform."
@@ -664,7 +757,11 @@ const EmailTemplateEditor = () => {
                     <Label>Detected Variables</Label>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {getAllVariables(editingTemplate).map((variable) => (
-                        <Badge key={variable} variant="outline" className="text-xs">
+                        <Badge
+                          key={variable}
+                          variant="outline"
+                          className="text-xs"
+                        >
                           {`{{${variable}}}`}
                         </Badge>
                       ))}
@@ -678,7 +775,10 @@ const EmailTemplateEditor = () => {
                     id="change_notes"
                     value={editingTemplate.change_notes || ""}
                     onChange={(e) =>
-                      setEditingTemplate({ ...editingTemplate, change_notes: e.target.value })
+                      setEditingTemplate({
+                        ...editingTemplate,
+                        change_notes: e.target.value,
+                      })
                     }
                     className="bg-terminal-bg border-terminal-green/30 text-terminal-text"
                     placeholder="Describe your changes..."
@@ -699,12 +799,16 @@ const EmailTemplateEditor = () => {
                     <strong>Version:</strong> {selectedTemplate.version}
                   </div>
                   <div>
-                    <strong>From:</strong> {selectedTemplate.default_from_address || "Default"}
+                    <strong>From:</strong>{" "}
+                    {selectedTemplate.default_from_address || "Default"}
                   </div>
                 </div>
 
                 {/* Template Preview */}
-                <Tabs value={previewMode} onValueChange={(value: any) => setPreviewMode(value)}>
+                <Tabs
+                  value={previewMode}
+                  onValueChange={(value: any) => setPreviewMode(value)}
+                >
                   <div className="flex items-center justify-between">
                     <TabsList>
                       <TabsTrigger value="subject">Subject</TabsTrigger>
@@ -723,23 +827,27 @@ const EmailTemplateEditor = () => {
                       Preview
                     </Button>
                   </div>
-                  
+
                   <TabsContent value="subject">
-                    <div className="p-3 bg-terminal-green/5 rounded font-mono text-sm">
+                    <div className="p-3 bg-terminal-green/5 rounded font-mono text-sm text-left">
                       {selectedTemplate.subject_template}
                     </div>
                   </TabsContent>
-                  
+
                   <TabsContent value="html">
-                    <div className="p-3 bg-terminal-green/5 rounded font-mono text-sm max-h-96 overflow-y-auto">
-                      <pre className="whitespace-pre-wrap">{selectedTemplate.html_template}</pre>
+                    <div className="p-3 bg-terminal-green/5 rounded font-mono text-sm max-h-96 overflow-y-auto text-left">
+                      <pre className="whitespace-pre-wrap">
+                        {selectedTemplate.html_template}
+                      </pre>
                     </div>
                   </TabsContent>
-                  
+
                   {selectedTemplate.text_template && (
                     <TabsContent value="text">
-                      <div className="p-3 bg-terminal-green/5 rounded font-mono text-sm max-h-96 overflow-y-auto">
-                        <pre className="whitespace-pre-wrap">{selectedTemplate.text_template}</pre>
+                      <div className="p-3 bg-terminal-green/5 rounded font-mono text-sm max-h-96 overflow-y-auto text-left">
+                        <pre className="whitespace-pre-wrap">
+                          {selectedTemplate.text_template}
+                        </pre>
                       </div>
                     </TabsContent>
                   )}
@@ -749,11 +857,17 @@ const EmailTemplateEditor = () => {
                 <div>
                   <Label>Template Variables</Label>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {(selectedTemplate.variables as string[])?.map((variable) => (
-                      <Badge key={variable} variant="outline" className="text-xs">
-                        {`{{${variable}}}`}
-                      </Badge>
-                    )) || []}
+                    {(selectedTemplate.variables as string[])?.map(
+                      (variable) => (
+                        <Badge
+                          key={variable}
+                          variant="outline"
+                          className="text-xs"
+                        >
+                          {`{{${variable}}}`}
+                        </Badge>
+                      )
+                    ) || []}
                   </div>
                 </div>
               </div>
@@ -789,11 +903,15 @@ const EmailTemplateEditor = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="flex items-center gap-2">
-                          <Badge variant={version.is_current ? "default" : "outline"}>
+                          <Badge
+                            variant={version.is_current ? "default" : "outline"}
+                          >
                             Version {version.version}
                           </Badge>
                           {version.is_current && (
-                            <Badge className="bg-terminal-green text-terminal-bg">Current</Badge>
+                            <Badge className="bg-terminal-green text-terminal-bg">
+                              Current
+                            </Badge>
                           )}
                         </div>
                         <div className="text-sm text-terminal-text-muted mt-1">
@@ -828,7 +946,9 @@ const EmailTemplateEditor = () => {
       <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
         <DialogContent className="bg-terminal-bg border-terminal-green/30">
           <DialogHeader>
-            <DialogTitle className="text-terminal-green">Send Test Email</DialogTitle>
+            <DialogTitle className="text-terminal-green">
+              Send Test Email
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -838,44 +958,48 @@ const EmailTemplateEditor = () => {
                 type="email"
                 value={testEmailData.testEmail}
                 onChange={(e) =>
-                  setTestEmailData({ ...testEmailData, testEmail: e.target.value })
+                  setTestEmailData({
+                    ...testEmailData,
+                    testEmail: e.target.value,
+                  })
                 }
                 className="bg-terminal-bg border-terminal-green/30 text-terminal-text"
                 placeholder="test@example.com"
               />
             </div>
-            
+
             {/* Variable Inputs */}
-            {selectedTemplate && getAllVariables(selectedTemplate).length > 0 && (
-              <div>
-                <Label>Template Variables</Label>
-                <div className="space-y-2 mt-2">
-                  {getAllVariables(selectedTemplate).map((variable) => (
-                    <div key={variable}>
-                      <Label htmlFor={`var-${variable}`} className="text-sm">
-                        {variable}
-                      </Label>
-                      <Input
-                        id={`var-${variable}`}
-                        value={testEmailData.variables[variable] || ""}
-                        onChange={(e) =>
-                          setTestEmailData({
-                            ...testEmailData,
-                            variables: {
-                              ...testEmailData.variables,
-                              [variable]: e.target.value,
-                            },
-                          })
-                        }
-                        className="bg-terminal-bg border-terminal-green/30 text-terminal-text text-sm"
-                        placeholder={`Value for {{${variable}}}`}
-                      />
-                    </div>
-                  ))}
+            {selectedTemplate &&
+              getAllVariables(selectedTemplate).length > 0 && (
+                <div>
+                  <Label>Template Variables</Label>
+                  <div className="space-y-2 mt-2">
+                    {getAllVariables(selectedTemplate).map((variable) => (
+                      <div key={variable}>
+                        <Label htmlFor={`var-${variable}`} className="text-sm">
+                          {variable}
+                        </Label>
+                        <Input
+                          id={`var-${variable}`}
+                          value={testEmailData.variables[variable] || ""}
+                          onChange={(e) =>
+                            setTestEmailData({
+                              ...testEmailData,
+                              variables: {
+                                ...testEmailData.variables,
+                                [variable]: e.target.value,
+                              },
+                            })
+                          }
+                          className="bg-terminal-bg border-terminal-green/30 text-terminal-text text-sm"
+                          placeholder={`Value for {{${variable}}}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-            
+              )}
+
             <div className="flex gap-2 justify-end">
               <DialogClose asChild>
                 <Button variant="outline" className="border-terminal-green/30">
@@ -885,7 +1009,9 @@ const EmailTemplateEditor = () => {
               <Button
                 onClick={handleSendTestEmail}
                 className="bg-terminal-green text-terminal-bg hover:bg-terminal-green/80"
-                disabled={testEmailMutation.isPending || !testEmailData.testEmail}
+                disabled={
+                  testEmailMutation.isPending || !testEmailData.testEmail
+                }
               >
                 <Send className="w-4 h-4 mr-2" />
                 Send Test
@@ -903,7 +1029,7 @@ const EmailTemplateEditor = () => {
               Email Preview: {selectedTemplate?.name}
             </DialogTitle>
           </DialogHeader>
-          
+
           {selectedTemplate && (
             <div className="space-y-6">
               {/* Variable Inputs */}
@@ -915,7 +1041,10 @@ const EmailTemplateEditor = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
                     {getAllVariables(selectedTemplate).map((variable) => (
                       <div key={variable}>
-                        <Label htmlFor={`preview-${variable}`} className="text-sm">
+                        <Label
+                          htmlFor={`preview-${variable}`}
+                          className="text-sm"
+                        >
                           {variable}
                         </Label>
                         <Input
@@ -945,7 +1074,7 @@ const EmailTemplateEditor = () => {
                     <TabsTrigger value="text">Text Preview</TabsTrigger>
                   )}
                 </TabsList>
-                
+
                 <TabsContent value="subject" className="space-y-4">
                   <div>
                     <Label>Raw Subject Template</Label>
@@ -956,25 +1085,33 @@ const EmailTemplateEditor = () => {
                   <div>
                     <Label>Processed Subject</Label>
                     <div className="p-3 bg-terminal-bg border border-terminal-green/30 rounded font-mono text-sm">
-                      {processPreview(selectedTemplate.subject_template, previewVariables)}
+                      {processPreview(
+                        selectedTemplate.subject_template,
+                        previewVariables
+                      )}
                     </div>
                   </div>
                 </TabsContent>
-                
+
                 <TabsContent value="html" className="space-y-4">
                   <div>
                     <Label>Raw HTML Template</Label>
                     <div className="p-3 bg-terminal-green/5 rounded font-mono text-sm border border-terminal-green/20 max-h-48 overflow-y-auto">
-                      <pre className="whitespace-pre-wrap">{selectedTemplate.html_template}</pre>
+                      <pre className="whitespace-pre-wrap">
+                        {selectedTemplate.html_template}
+                      </pre>
                     </div>
                   </div>
                   <div>
                     <Label>Processed HTML</Label>
                     <div className="p-3 bg-terminal-bg border border-terminal-green/30 rounded max-h-64 overflow-y-auto">
-                      <div 
+                      <div
                         className="prose prose-invert max-w-none"
                         dangerouslySetInnerHTML={{
-                          __html: processPreview(selectedTemplate.html_template, previewVariables)
+                          __html: processPreview(
+                            selectedTemplate.html_template,
+                            previewVariables
+                          ),
                         }}
                       />
                     </div>
@@ -983,25 +1120,33 @@ const EmailTemplateEditor = () => {
                     <Label>HTML Source (Processed)</Label>
                     <div className="p-3 bg-terminal-green/5 rounded font-mono text-xs border border-terminal-green/20 max-h-48 overflow-y-auto">
                       <pre className="whitespace-pre-wrap">
-                        {processPreview(selectedTemplate.html_template, previewVariables)}
+                        {processPreview(
+                          selectedTemplate.html_template,
+                          previewVariables
+                        )}
                       </pre>
                     </div>
                   </div>
                 </TabsContent>
-                
+
                 {selectedTemplate.text_template && (
                   <TabsContent value="text" className="space-y-4">
                     <div>
                       <Label>Raw Text Template</Label>
                       <div className="p-3 bg-terminal-green/5 rounded font-mono text-sm border border-terminal-green/20 max-h-48 overflow-y-auto">
-                        <pre className="whitespace-pre-wrap">{selectedTemplate.text_template}</pre>
+                        <pre className="whitespace-pre-wrap">
+                          {selectedTemplate.text_template}
+                        </pre>
                       </div>
                     </div>
                     <div>
                       <Label>Processed Text</Label>
                       <div className="p-3 bg-terminal-bg border border-terminal-green/30 rounded font-mono text-sm max-h-64 overflow-y-auto">
                         <pre className="whitespace-pre-wrap">
-                          {processPreview(selectedTemplate.text_template, previewVariables)}
+                          {processPreview(
+                            selectedTemplate.text_template,
+                            previewVariables
+                          )}
                         </pre>
                       </div>
                     </div>
@@ -1013,7 +1158,8 @@ const EmailTemplateEditor = () => {
               <div className="grid grid-cols-2 gap-4 p-4 bg-terminal-green/5 rounded border border-terminal-green/20">
                 <div>
                   <strong className="text-terminal-green">From:</strong>{" "}
-                  {selectedTemplate.default_from_address || "Default system address"}
+                  {selectedTemplate.default_from_address ||
+                    "Default system address"}
                 </div>
                 <div>
                   <strong className="text-terminal-green">Type:</strong>{" "}
@@ -1024,14 +1170,17 @@ const EmailTemplateEditor = () => {
                   {selectedTemplate.category}
                 </div>
                 <div>
-                  <strong className="text-terminal-green">Version:</strong>{" "}
-                  v{selectedTemplate.version}
+                  <strong className="text-terminal-green">Version:</strong> v
+                  {selectedTemplate.version}
                 </div>
               </div>
 
               <div className="flex gap-2 justify-end">
                 <DialogClose asChild>
-                  <Button variant="outline" className="border-terminal-green/30">
+                  <Button
+                    variant="outline"
+                    className="border-terminal-green/30"
+                  >
                     Close
                   </Button>
                 </DialogClose>
@@ -1045,23 +1194,32 @@ const EmailTemplateEditor = () => {
       <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
         <DialogContent className="bg-terminal-bg border-terminal-green/30 max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-terminal-green">Import Email Templates</DialogTitle>
+            <DialogTitle className="text-terminal-green">
+              Import Email Templates
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label htmlFor="importStrategy">Import Strategy</Label>
-              <Select value={importStrategy} onValueChange={(value: any) => setImportStrategy(value)}>
+              <Select
+                value={importStrategy}
+                onValueChange={(value: any) => setImportStrategy(value)}
+              >
                 <SelectTrigger className="bg-terminal-bg border-terminal-green/30">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="skip">Skip existing templates</SelectItem>
-                  <SelectItem value="overwrite">Overwrite existing templates</SelectItem>
-                  <SelectItem value="create_new">Create new templates with modified names</SelectItem>
+                  <SelectItem value="overwrite">
+                    Overwrite existing templates
+                  </SelectItem>
+                  <SelectItem value="create_new">
+                    Create new templates with modified names
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <Label htmlFor="importData">Template Data (JSON)</Label>
               <Textarea
@@ -1072,7 +1230,7 @@ const EmailTemplateEditor = () => {
                 placeholder="Paste exported email template JSON here..."
               />
             </div>
-            
+
             <div className="flex gap-2 justify-end">
               <DialogClose asChild>
                 <Button variant="outline" className="border-terminal-green/30">

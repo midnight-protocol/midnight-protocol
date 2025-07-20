@@ -96,7 +96,8 @@ CREATE TYPE "public"."omniscient_match_status" AS ENUM (
     'scheduled',
     'active',
     'completed',
-    'cancelled'
+    'cancelled',
+    'reported'
 );
 
 
@@ -579,6 +580,24 @@ CREATE TABLE IF NOT EXISTS "public"."omniscient_matches" (
 ALTER TABLE "public"."omniscient_matches" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."omniscient_morning_reports" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "report_date" "date" DEFAULT CURRENT_DATE NOT NULL,
+    "match_notifications" "jsonb" DEFAULT '[]'::"jsonb" NOT NULL,
+    "match_summaries" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "agent_insights" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "notification_count" integer DEFAULT 0 NOT NULL,
+    "total_opportunity_score" numeric(5,2) DEFAULT 0,
+    "email_sent" boolean DEFAULT false,
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "updated_at" timestamp with time zone DEFAULT "now"()
+);
+
+
+ALTER TABLE "public"."omniscient_morning_reports" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."omniscient_outcomes" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "conversation_id" "uuid" NOT NULL,
@@ -959,6 +978,11 @@ ALTER TABLE ONLY "public"."omniscient_matches"
 
 
 
+ALTER TABLE ONLY "public"."omniscient_morning_reports"
+    ADD CONSTRAINT "omniscient_morning_reports_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."omniscient_outcomes"
     ADD CONSTRAINT "omniscient_outcomes_pkey" PRIMARY KEY ("id");
 
@@ -1071,6 +1095,11 @@ ALTER TABLE ONLY "public"."omniscient_match_insights"
 
 ALTER TABLE ONLY "public"."omniscient_matches"
     ADD CONSTRAINT "unique_user_pair" UNIQUE ("user_a_id", "user_b_id");
+
+
+
+ALTER TABLE ONLY "public"."omniscient_morning_reports"
+    ADD CONSTRAINT "unique_user_report_date" UNIQUE ("user_id", "report_date");
 
 
 
@@ -1235,6 +1264,14 @@ CREATE INDEX "idx_omniscient_matches_users" ON "public"."omniscient_matches" USI
 
 
 
+CREATE INDEX "idx_omniscient_morning_reports_email_sent" ON "public"."omniscient_morning_reports" USING "btree" ("email_sent", "report_date");
+
+
+
+CREATE INDEX "idx_omniscient_morning_reports_user_date" ON "public"."omniscient_morning_reports" USING "btree" ("user_id", "report_date");
+
+
+
 CREATE INDEX "idx_omniscient_outcomes_conversation" ON "public"."omniscient_outcomes" USING "btree" ("conversation_id");
 
 
@@ -1351,6 +1388,10 @@ CREATE OR REPLACE TRIGGER "update_omniscient_matches_updated_at" BEFORE UPDATE O
 
 
 
+CREATE OR REPLACE TRIGGER "update_omniscient_morning_reports_updated_at" BEFORE UPDATE ON "public"."omniscient_morning_reports" FOR EACH ROW EXECUTE FUNCTION "public"."update_omniscient_updated_at"();
+
+
+
 CREATE OR REPLACE TRIGGER "update_omniscient_outcomes_updated_at" BEFORE UPDATE ON "public"."omniscient_outcomes" FOR EACH ROW EXECUTE FUNCTION "public"."update_omniscient_updated_at"();
 
 
@@ -1452,6 +1493,11 @@ ALTER TABLE ONLY "public"."omniscient_matches"
 
 ALTER TABLE ONLY "public"."omniscient_matches"
     ADD CONSTRAINT "omniscient_matches_user_b_id_fkey" FOREIGN KEY ("user_b_id") REFERENCES "public"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."omniscient_morning_reports"
+    ADD CONSTRAINT "omniscient_morning_reports_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE;
 
 
 
@@ -1602,6 +1648,10 @@ CREATE POLICY "Admins can view all morning reports" ON "public"."morning_reports
 
 
 
+CREATE POLICY "Admins can view all morning reports" ON "public"."omniscient_morning_reports" FOR SELECT USING ("public"."is_admin"());
+
+
+
 CREATE POLICY "Admins can view all omniscient data" ON "public"."omniscient_insights" TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM "public"."users"
   WHERE (("users"."auth_user_id" = "auth"."uid"()) AND ("users"."role" = 'admin'::"text")))));
@@ -1709,6 +1759,10 @@ CREATE POLICY "System can manage logs" ON "public"."omniscient_processing_logs" 
 
 
 CREATE POLICY "System can manage match insights" ON "public"."omniscient_match_insights" TO "service_role" USING (true);
+
+
+
+CREATE POLICY "System can manage morning reports" ON "public"."omniscient_morning_reports" TO "service_role" USING (true);
 
 
 
@@ -1873,6 +1927,12 @@ CREATE POLICY "Users can view their own morning reports" ON "public"."morning_re
 
 
 
+CREATE POLICY "Users can view their own morning reports" ON "public"."omniscient_morning_reports" FOR SELECT TO "authenticated" USING (("user_id" = ( SELECT "users"."id"
+   FROM "public"."users"
+  WHERE ("users"."auth_user_id" = "auth"."uid"()))));
+
+
+
 CREATE POLICY "Users can view their own onboarding messages" ON "public"."onboarding_messages" FOR SELECT TO "authenticated" USING (("conversation_id" IN ( SELECT "onboarding_conversations"."id"
    FROM "public"."onboarding_conversations"
   WHERE ("onboarding_conversations"."user_id" IN ( SELECT "users"."id"
@@ -1953,6 +2013,9 @@ ALTER TABLE "public"."omniscient_match_insights" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."omniscient_matches" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."omniscient_morning_reports" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."omniscient_outcomes" ENABLE ROW LEVEL SECURITY;
@@ -2370,6 +2433,12 @@ GRANT ALL ON TABLE "public"."omniscient_match_insights" TO "service_role";
 GRANT ALL ON TABLE "public"."omniscient_matches" TO "anon";
 GRANT ALL ON TABLE "public"."omniscient_matches" TO "authenticated";
 GRANT ALL ON TABLE "public"."omniscient_matches" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."omniscient_morning_reports" TO "anon";
+GRANT ALL ON TABLE "public"."omniscient_morning_reports" TO "authenticated";
+GRANT ALL ON TABLE "public"."omniscient_morning_reports" TO "service_role";
 
 
 

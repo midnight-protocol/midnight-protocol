@@ -72,11 +72,9 @@ export function useChunkedData<T>({
   }, [offset, chunkSize, fetchFunction, loading, hasMore, onError]);
 
   const refresh = useCallback(async () => {
-    // Wait for initialization if needed
-    if (!isInitialized) {
-      // If not initialized yet, wait a bit and retry
-      await new Promise(resolve => setTimeout(resolve, 50));
-      if (!isMountedRef.current) return;
+    // Ensure component is mounted and initialized
+    if (!isMountedRef.current || !isInitialized) {
+      return;
     }
     
     setData([]);

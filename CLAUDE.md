@@ -10,6 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run build:dev` - Build for development mode
 - `npm run lint` - Run ESLint on all TypeScript/TSX files
 - `npm run preview` - Preview production build locally
+- **IMPORTANT**: never try to run the dev server with npm run dev, it is already running
 
 ### Supabase Edge Functions
 - `supabase start` - Start local Supabase instance (requires Docker)
@@ -124,3 +125,7 @@ The comprehensive admin system includes:
 - Deprecating all direct Supabase SDK calls from pages and components
 - All calls must eventually use one of the appropriate API services
 - API services should always invoke edge functions and never make database calls directly from the Supabase SDK
+
+## Claude Code Guidelines
+- Always ask the user to run Supabase CLI commands for you, never run them directly
+- Dont try to check linting after implementing a feature
