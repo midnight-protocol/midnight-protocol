@@ -63,6 +63,11 @@ const EmailInterestsPanel = lazy(() =>
     default: m.default,
   }))
 );
+const EmailTemplateEditor = lazy(() =>
+  import("@/components/admin/EmailTemplateEditor").then((m) => ({
+    default: m.default,
+  }))
+);
 
 const AdminDashboard = () => {
   const { user, isAdmin, loading: authLoading, initialized } = useAuth();
@@ -201,6 +206,14 @@ const AdminDashboard = () => {
                 <span className="hidden sm:inline">Emails</span>
                 <span className="sm:hidden">Email</span>
               </TabsTrigger>
+              <TabsTrigger
+                value="email-templates"
+                className="data-[state=active]:bg-terminal-green data-[state=active]:text-terminal-bg flex-shrink-0 text-xs sm:text-sm"
+              >
+                <FileCode2 className="w-4 h-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Templates</span>
+                <span className="sm:hidden">Templates</span>
+              </TabsTrigger>
             </TabsList>
 
             {/* Overview Tab */}
@@ -253,6 +266,12 @@ const AdminDashboard = () => {
             <TabsContent value="email-interests">
               <Suspense fallback={<AdminDashboardLoadingSkeleton />}>
                 <EmailInterestsPanel />
+              </Suspense>
+            </TabsContent>
+
+            <TabsContent value="email-templates">
+              <Suspense fallback={<AdminDashboardLoadingSkeleton />}>
+                <EmailTemplateEditor />
               </Suspense>
             </TabsContent>
           </Tabs>
