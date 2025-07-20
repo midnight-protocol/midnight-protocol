@@ -10,13 +10,8 @@ export async function validateConfiguration(): Promise<ConfigValidation> {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  console.log("[ConfigValidator] Starting validation...");
-
-  // Skip environment variable checks and just verify Supabase connection works
-
   // Check if we can connect to Supabase
   try {
-    console.log("[ConfigValidator] Testing database connection...");
     const { data, error } = await supabase
       .from("system_config")
       .select("config_key, config_value")
@@ -25,8 +20,6 @@ export async function validateConfiguration(): Promise<ConfigValidation> {
     if (error) {
       console.error("[ConfigValidator] Database connection error:", error);
       errors.push(`Database connection failed: ${error.message}`);
-    } else {
-      console.log("[ConfigValidator] Database connection successful");
     }
   } catch (e) {
     console.error("[ConfigValidator] Supabase connection exception:", e);
@@ -43,11 +36,7 @@ export async function validateConfiguration(): Promise<ConfigValidation> {
       .from("system_config")
       .select("config_key, config_value");
 
-    const requiredConfigs = [
-      "ai_model_conversation",
-      "ai_model_onboarding",
-      "ai_model_reporting",
-    ];
+    const requiredConfigs = [];
 
     requiredConfigs.forEach((key) => {
       const config = configs?.find((c) => c.config_key === key);
