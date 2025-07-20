@@ -92,28 +92,25 @@ export const UserManagementPanel = () => {
     }
   };
 
-  // Fetch initial data
-  const fetchInitialData = useCallback(async () => {
-    try {
-      setLoading(true);
-      // Use refresh to load the initial data
-      console.log("refreshing users");
-      await refreshUsers();
-      setHasInitialData(true);
-    } catch (error) {
-      toast.error("Failed to load user data");
-    } finally {
-      setLoading(false);
-    }
-  }, [refreshUsers]);
-
   useEffect(() => {
-    // Only fetch initial data if we haven't already
+    // Only fetch initial data if we haven't already - avoid race conditions
     if (!hasInitialData && !usersLoading && !loading) {
       console.log("fetching initial data");
-      fetchInitialData();
+      setLoading(true);
+      refreshUsers()
+        .then(() => {
+          console.log("initial data fetched successfully");
+          setHasInitialData(true);
+        })
+        .catch((error) => {
+          console.error("Failed to load initial user data:", error);
+          toast.error("Failed to load user data");
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     }
-  }, [hasInitialData, fetchInitialData, usersLoading, loading]);
+  }, [hasInitialData, usersLoading, loading, refreshUsers]);
 
   useEffect(() => {
     fetchStatsAndPendingUsers();

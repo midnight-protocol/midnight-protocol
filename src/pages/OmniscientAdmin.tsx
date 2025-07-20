@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card } from '@/components/ui/card';
-import { Brain, Users, MessageSquare, BarChart3, Settings } from 'lucide-react';
-import OmniscientDashboard from '@/components/admin/omniscient/OmniscientDashboard';
-import OmniscientMatchManager from '@/components/admin/omniscient/OmniscientMatchManager';
-import OmniscientConversationMonitor from '@/components/admin/omniscient/OmniscientConversationMonitor';
-import OmniscientAnalytics from '@/components/admin/omniscient/OmniscientAnalytics';
-import OmniscientConfig from '@/components/admin/omniscient/OmniscientConfig';
+import React, { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
+import { Brain, Users, MessageSquare, BarChart3, Settings } from "lucide-react";
+import OmniscientDashboard from "@/components/admin/omniscient/OmniscientDashboard";
+import OmniscientMatchManager from "@/components/admin/omniscient/OmniscientMatchManager";
+import OmniscientConversationMonitor from "@/components/admin/omniscient/OmniscientConversationMonitor";
+import OmniscientAnalytics from "@/components/admin/omniscient/OmniscientAnalytics";
+import OmniscientConfig from "@/components/admin/omniscient/OmniscientConfig";
 
 const OmniscientAdmin = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
@@ -17,46 +17,43 @@ const OmniscientAdmin = () => {
         <div className="flex items-center gap-3 mb-2">
           <Brain className="w-8 h-8 text-purple-400" />
           <h1 className="text-3xl font-bold text-white">
-            Omniscient Conversation System
+            Matching System Dashboard
           </h1>
         </div>
-        <p className="text-gray-400">
-          AI-powered conversation management with deep insights and analysis
-        </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-5 w-full mb-6 bg-gray-800 border-gray-700">
-          <TabsTrigger 
-            value="dashboard" 
+          <TabsTrigger
+            value="dashboard"
             className="flex items-center gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
             <Brain className="w-4 h-4" />
             Dashboard
           </TabsTrigger>
-          <TabsTrigger 
-            value="matches" 
+          <TabsTrigger
+            value="matches"
             className="flex items-center gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
             <Users className="w-4 h-4" />
             Matches
           </TabsTrigger>
-          <TabsTrigger 
-            value="conversations" 
+          <TabsTrigger
+            value="conversations"
             className="flex items-center gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
             <MessageSquare className="w-4 h-4" />
             Conversations
           </TabsTrigger>
-          <TabsTrigger 
-            value="analytics" 
+          <TabsTrigger
+            value="analytics"
             className="flex items-center gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
             <BarChart3 className="w-4 h-4" />
             Analytics
           </TabsTrigger>
-          <TabsTrigger 
-            value="config" 
+          <TabsTrigger
+            value="config"
             className="flex items-center gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
           >
             <Settings className="w-4 h-4" />

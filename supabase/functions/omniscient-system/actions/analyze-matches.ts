@@ -1,9 +1,6 @@
 import { ActionContext, ActionResponse } from "../types.ts";
 import { calculateNextMidnight, logAction } from "../utils.ts";
-import {
-  performOmniscientAnalysis,
-  storeInsights,
-} from "../omniscientAnalysis.ts";
+import { runMatchOnUsers } from "../omniscientAnalysis.ts";
 
 export default async function analyzeMatches(
   context: ActionContext
@@ -90,48 +87,17 @@ export default async function analyzeMatches(
         `Analyzing pair ${analysisCount}/${pairs.length}: ${pair.userA.handle} × ${pair.userB.handle}`
       );
 
-      const analysis = await performOmniscientAnalysis(
+      const { match, analysis } = await runMatchOnUsers(
         pair.userA,
         pair.userB,
         supabase
       );
 
-      // 4. Store match
-      const { data: match, error: matchError } = await supabase
-        .from("omniscient_matches")
-        .insert({
-          user_a_id: pair.userA.id,
-          user_b_id: pair.userB.id,
-          opportunity_score: analysis.opportunityScore,
-          predicted_outcome: analysis.outcome,
-          analysis_summary: analysis.reasoning,
-          match_reasoning: `Opportunity Score: ${analysis.opportunityScore.toFixed(
-            2
-          )}. ${analysis.reasoning}`,
-          should_notify: analysis.notificationAssessment.shouldNotify,
-          notification_score: analysis.notificationAssessment.notificationScore,
-          notification_reasoning: analysis.notificationAssessment.reasoning,
-          introduction_rationale_for_user_a:
-            analysis.introductionRationale.forUserA,
-          introduction_rationale_for_user_b:
-            analysis.introductionRationale.forUserB,
-          agent_summaries_agent_a_to_human_a:
-            analysis.agentSummaries.agentAToHumanA,
-          agent_summaries_agent_b_to_human_b:
-            analysis.agentSummaries.agentBToHumanB,
-          status: "analyzed",
-          analyzed_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (matchError) {
-        console.error("Error storing match:", matchError);
+      if (!match) {
+        console.error("Error running match");
         continue;
       }
 
-      // 5. Store insights
-      await storeInsights(supabase, match.id, analysis);
       matches.push(match);
 
       // Add small delay to avoid rate limiting

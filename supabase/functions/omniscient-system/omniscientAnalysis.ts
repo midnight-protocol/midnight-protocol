@@ -1,8 +1,47 @@
 import { PromptService } from "../_shared/prompt-service.ts";
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import { UserProfile, OmniscientAnalysisResult } from "./types.ts";
+import {
+  UserProfile,
+  OmniscientAnalysisResult,
+  OmniscientMatch,
+} from "./types.ts";
 
-export async function performOmniscientAnalysis(
+export async function runMatchOnUsers(
+  userA: UserProfile,
+  userB: UserProfile,
+  supabase: SupabaseClient
+): Promise<{ match: OmniscientMatch; analysis: OmniscientAnalysisResult }> {
+  // 1. Perform analysis
+
+  console.log("Running match on users", userA.handle, userB.handle);
+  const analysis = await performOmniscientAnalysis(userA, userB, supabase);
+
+  // 2. Create or update match using upsert
+  console.log("Processing match result, score:", analysis.opportunityScore);
+  const match = await processMatchResult(
+    supabase,
+    userA.id,
+    userB.id,
+    analysis
+  );
+
+  // 3. Clean up old insights and store new ones
+  if (match) {
+    // 3.1 Delete existing match insights
+    console.log("Deleting existing match insights");
+    await supabase
+      .from("omniscient_match_insights")
+      .delete()
+      .eq("match_id", match.id);
+
+    // 3.2 Store new insights
+    console.log("Storing new insights");
+    await storeInsights(supabase, match.id, analysis);
+  }
+  return { match, analysis };
+}
+
+async function performOmniscientAnalysis(
   userA: UserProfile,
   userB: UserProfile,
   supabase: SupabaseClient
@@ -48,7 +87,52 @@ export async function performOmniscientAnalysis(
   }
 }
 
-export async function storeInsights(
+async function processMatchResult(
+  supabase: SupabaseClient,
+  userIdA: string,
+  userIdB: string,
+  analysis: OmniscientAnalysisResult
+) {
+  console.log("Processing match result", analysis);
+  const matchData = {
+    user_a_id: userIdA,
+    user_b_id: userIdB,
+    opportunity_score: analysis.opportunityScore,
+    predicted_outcome: analysis.outcome,
+    analysis_summary: analysis.reasoning,
+    match_reasoning: `Opportunity Score: ${analysis.opportunityScore.toFixed(
+      2
+    )}. ${analysis.reasoning}`,
+    should_notify: analysis.notificationAssessment.shouldNotify,
+    notification_score: analysis.notificationAssessment.notificationScore,
+    notification_reasoning: analysis.notificationAssessment.reasoning,
+    introduction_rationale_for_user_a:
+      analysis.introductionRationale.agentAToHumanA,
+    introduction_rationale_for_user_b:
+      analysis.introductionRationale.agentBToHumanB,
+    agent_summaries_agent_a_to_human_a: analysis.agentSummaries.forUserA,
+    agent_summaries_agent_b_to_human_b: analysis.agentSummaries.forUserB,
+    status: "analyzed",
+    analyzed_at: new Date().toISOString(),
+  };
+
+  const { data: match } = await supabase
+    .from("omniscient_matches")
+    .upsert(
+      {
+        ...matchData,
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "user_a_id,user_b_id",
+      }
+    )
+    .select()
+    .single();
+  return match;
+}
+
+async function storeInsights(
   supabase: SupabaseClient,
   matchId: string,
   analysis: OmniscientAnalysisResult

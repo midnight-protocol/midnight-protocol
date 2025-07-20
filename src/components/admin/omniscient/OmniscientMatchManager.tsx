@@ -174,9 +174,6 @@ const OmniscientMatchManager = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-white mb-1">Match Manager</h2>
-          <p className="text-gray-400">
-            Manage omniscient matches and conversation execution
-          </p>
         </div>
         <div className="flex gap-2">
           <Button

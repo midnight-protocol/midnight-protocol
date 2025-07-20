@@ -17,6 +17,15 @@ import { SystemHealthCardSkeleton } from "@/components/skeletons/ComponentSkelet
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
+interface NetworkHealthMetrics {
+  totalActiveUsers: number;
+  pendingApprovals: number;
+  conversationsToday: number;
+  introductionsToday: number;
+  avgConversationQuality: number;
+  reportsDeliveredToday: number;
+}
+
 export const NetworkHealthDashboard = () => {
   const [metrics, setMetrics] = useState<NetworkHealthMetrics>({
     totalActiveUsers: 0,
