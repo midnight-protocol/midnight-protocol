@@ -1,5 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "./types";
 
 // For local development, use environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -14,4 +13,4 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Missing Supabase configuration.");
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

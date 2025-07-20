@@ -1,23 +1,29 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
-import './index.css';
-import { validateConfiguration } from './utils/config-validator';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.tsx";
+import "./index.css";
+import { validateConfiguration } from "./utils/config-validator";
 
 // Validate configuration on startup
-console.log('[Main] Starting configuration validation...');
 Promise.race([
   validateConfiguration(),
-  new Promise<{ isValid: boolean; errors: string[]; warnings: string[] }>((resolve) => 
-    setTimeout(() => resolve({ isValid: true, errors: [], warnings: ['Configuration validation timed out'] }), 5000)
-  )
-]).then(validation => {
-  console.log('[Main] Configuration validation result:', validation);
+  new Promise<{ isValid: boolean; errors: string[]; warnings: string[] }>(
+    (resolve) =>
+      setTimeout(
+        () =>
+          resolve({
+            isValid: true,
+            errors: [],
+            warnings: ["Configuration validation timed out"],
+          }),
+        5000
+      )
+  ),
+]).then((validation) => {
   if (!validation.isValid) {
-    
     // Show error overlay in development
     if (import.meta.env.DEV) {
-      const errorDiv = document.createElement('div');
+      const errorDiv = document.createElement("div");
       errorDiv.style.cssText = `
         position: fixed;
         top: 0;
@@ -31,19 +37,19 @@ Promise.race([
       `;
       errorDiv.innerHTML = `
         <h2>Configuration Error</h2>
-        <ul>${validation.errors.map(e => `<li>${e}</li>`).join('')}</ul>
+        <ul>${validation.errors.map((e) => `<li>${e}</li>`).join("")}</ul>
         <p>Check your .env.local file and Supabase configuration</p>
       `;
       document.body.prepend(errorDiv);
     }
   }
-  
+
   if (validation.warnings.length > 0) {
-    console.warn('Configuration warnings:', validation.warnings);
+    console.warn("Configuration warnings:", validation.warnings);
   }
 });
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
