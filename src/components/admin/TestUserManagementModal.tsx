@@ -9,7 +9,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RefreshCw } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RefreshCw, Info } from "lucide-react";
 import { toast } from "sonner";
 import { adminAPIService } from "@/services/admin-api.service";
 import { formatDate } from "@/utils/admin.utils";
@@ -26,6 +28,8 @@ export const TestUserManagementModal: React.FC<TestUserManagementModalProps> = (
   onUsersCreated,
 }) => {
   const [count, setCount] = useState(10);
+  const [generationMode, setGenerationMode] = useState<'random' | 'guided'>('random');
+  const [inputData, setInputData] = useState('');
   const [loading, setLoading] = useState(false);
   const [testUsers, setTestUsers] = useState<any[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -40,20 +44,54 @@ export const TestUserManagementModal: React.FC<TestUserManagementModalProps> = (
 
   const fetchTestUsers = async () => {
     try {
+      console.log('Fetching test users...');
       const result = await adminAPIService.getTestUsers({ limit: 20 });
+      console.log('Fetch test users result:', result);
       setTestUsers(result.users);
     } catch (error) {
+      console.error('Error in fetchTestUsers:', error);
       toast.error("Failed to load test users");
+      throw error; // Re-throw so the caller knows it failed
     }
   };
 
+
   const handleCreateUsers = async () => {
     setLoading(true);
+    
     try {
-      const result = await adminAPIService.createTestUsers(count);
-      toast.success(`Created ${result.created} test users`);
-      await fetchTestUsers();
-      onUsersCreated(); // Refresh parent data
+      // Check if guided mode has input data
+      if (generationMode === 'guided' && !inputData.trim()) {
+        toast.error('Please provide guidance for profile generation');
+        setLoading(false);
+        return;
+      }
+
+      const params = {
+        count: generationMode === 'guided' ? 1 : count,
+        generation_mode: generationMode,
+        input_data: generationMode === 'guided' ? inputData.trim() : undefined
+      };
+
+      const result = await adminAPIService.createTestUsers(params);
+      console.log('Create test users result:', result);
+      
+      const modeText = generationMode === 'guided' ? 'guided' : 'random';
+      toast.success(`Created ${result.created} test user(s) using ${modeText} generation`);
+      
+      try {
+        await fetchTestUsers();
+      } catch (fetchError) {
+        console.error('Error fetching test users:', fetchError);
+        // Continue anyway - don't fail the whole operation
+      }
+      
+      try {
+        onUsersCreated(); // Refresh parent data
+      } catch (refreshError) {
+        console.error('Error calling onUsersCreated:', refreshError);
+        // Continue anyway - don't fail the whole operation
+      }
     } catch (error) {
       toast.error("Failed to create test users");
     } finally {
@@ -123,20 +161,73 @@ export const TestUserManagementModal: React.FC<TestUserManagementModalProps> = (
           </div>
         ) : (
           // Normal view
-          <div className="space-y-4">
-            <div className="flex items-end gap-4">
-              <div className="flex-1">
-                <Label htmlFor="user-count" className="text-terminal-text">Number of users to create</Label>
-                <Input
-                  id="user-count"
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={count}
-                  onChange={(e) => setCount(parseInt(e.target.value) || 10)}
-                  className="bg-terminal-bg border-terminal-green/30 text-terminal-text font-mono"
-                />
-              </div>
+          <div className="space-y-6">
+            {/* Generation Mode Selection */}
+            <div className="space-y-3">
+              <Label className="text-terminal-text font-mono">Generation Mode</Label>
+              <RadioGroup
+                value={generationMode}
+                onValueChange={(value: 'random' | 'guided') => {
+                  setGenerationMode(value);
+                }}
+                className="space-y-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="random" id="random" className="border-terminal-green text-terminal-green" />
+                  <Label htmlFor="random" className="text-terminal-text cursor-pointer">
+                    Random Generation - Creates diverse profiles automatically
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="guided" id="guided" className="border-terminal-green text-terminal-green" />
+                  <Label htmlFor="guided" className="text-terminal-text cursor-pointer">
+                    Guided Generation - Creates profiles based on specific criteria
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* Dynamic Form Fields */}
+            <div className="space-y-4">
+              {generationMode === 'random' ? (
+                <div className="space-y-2">
+                  <Label htmlFor="user-count" className="text-terminal-text">Number of users to create</Label>
+                  <Input
+                    id="user-count"
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={count}
+                    onChange={(e) => setCount(parseInt(e.target.value) || 10)}
+                    className="bg-terminal-bg border-terminal-green/30 text-terminal-text font-mono"
+                  />
+                  <p className="text-terminal-text-muted text-sm">
+                    Creates diverse profiles across different industries and experience levels
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="input-data" className="text-terminal-text">Profile Guidance</Label>
+                  <Textarea
+                    id="input-data"
+                    value={inputData}
+                    onChange={(e) => setInputData(e.target.value)}
+                    placeholder="Create a senior AI/ML engineer who focuses on machine learning and product development, seeking connections with startup founders and product managers"
+                    className="bg-terminal-bg border-terminal-green/30 text-terminal-text font-mono h-24"
+                  />
+                  <div className="flex items-start gap-2 text-terminal-text-muted text-sm">
+                    <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p>Guided mode creates one user at a time based on your description.</p>
+                      <p className="mt-1">Describe the type of profile you want - industry, experience level, interests, etc.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Create Button */}
+            <div className="flex justify-end">
               <Button
                 onClick={handleCreateUsers}
                 disabled={loading}
@@ -145,7 +236,7 @@ export const TestUserManagementModal: React.FC<TestUserManagementModalProps> = (
                 {loading ? (
                   <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Creating...</>
                 ) : (
-                  "Create Test Users"
+                  `Create ${generationMode === 'guided' ? '1 User' : `${count} Users`}`
                 )}
               </Button>
             </div>

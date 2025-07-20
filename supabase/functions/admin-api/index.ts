@@ -71,6 +71,18 @@ import {
   exportEmailInterests,
   deleteEmailInterest,
 } from "./actions/email-interests.ts";
+import {
+  getEmailTemplates,
+  getEmailTemplate,
+  createEmailTemplate,
+  updateEmailTemplate,
+  getEmailVersions,
+  restoreEmailVersion,
+  exportEmailTemplates,
+  importEmailTemplates,
+  sendTestEmail,
+  getEmailCategories,
+} from "./actions/email-templates.ts";
 
 const actions: Record<string, Function> = {
   // Authentication
@@ -143,6 +155,18 @@ const actions: Record<string, Function> = {
   getEmailInterestStats,
   exportEmailInterests,
   deleteEmailInterest,
+
+  // Email Templates
+  getEmailTemplates,
+  getEmailTemplate,
+  createEmailTemplate,
+  updateEmailTemplate,
+  getEmailVersions,
+  restoreEmailVersion,
+  exportEmailTemplates,
+  importEmailTemplates,
+  sendTestEmail,
+  getEmailCategories,
 };
 
 serve(async (req) => {

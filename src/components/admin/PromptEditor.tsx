@@ -92,6 +92,11 @@ const DEFAULT_VALUES: Record<string, Record<string, string>> = {
       "Bob: Hi Alice! I heard you're working on some interesting fintech projects.\nAlice: Yes! We're building a real-time payment system. I saw you specialize in AI - that's fascinating.\nBob: Indeed! I've been working on fraud detection models for financial transactions.",
   },
 
+  generate_test_users: {
+    generation_mode: "random",
+    input_data: "no guidance, random generation",
+  },
+
   // Omniscient analysis defaults
   omniscient_opportunity_analysis_v2: {
     handleA: "@sarah_designer",

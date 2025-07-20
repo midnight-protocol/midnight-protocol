@@ -400,11 +400,22 @@ class AdminAPIService {
   }
 
   // Test User Management
-  async createTestUsers(count: number = 10): Promise<{
+  async createTestUsers(params: {
+    count?: number;
+    generation_mode?: 'random' | 'guided';
+    input_data?: string;
+  } = {}): Promise<{
     created: number;
     users: any[];
+    generation_mode: string;
+    profiles_generated: number;
   }> {
-    return this.callAdminAPI("createTestUsers", { count });
+    const { count = 10, generation_mode = 'random', input_data } = params;
+    return this.callAdminAPI("createTestUsers", { 
+      count, 
+      generation_mode, 
+      input_data 
+    });
   }
 
   async deleteAllTestUsers(): Promise<{
@@ -710,6 +721,119 @@ class AdminAPIService {
       target_type: "email_interest",
       target_id: interestId,
     });
+  }
+
+  // Email Templates
+  async getEmailTemplates(): Promise<any[]> {
+    return this.callAdminAPI("getEmailTemplates");
+  }
+
+  async getEmailTemplate(templateId: string): Promise<{
+    versions: any[];
+    [key: string]: any;
+  }> {
+    return this.callAdminAPI("getEmailTemplate", { templateId });
+  }
+
+  async createEmailTemplate(data: {
+    name: string;
+    description?: string;
+    category?: string;
+    subject_template: string;
+    html_template: string;
+    text_template?: string;
+    default_from_address?: string;
+    email_type?: string;
+    template_category?: string;
+    change_notes?: string;
+  }): Promise<any> {
+    return this.callAdminAPI("createEmailTemplate", {
+      ...data,
+      target_type: "email_template",
+      target_id: "new",
+    });
+  }
+
+  async updateEmailTemplate(
+    templateId: string,
+    data: {
+      name?: string;
+      description?: string;
+      category?: string;
+      subject_template?: string;
+      html_template?: string;
+      text_template?: string;
+      default_from_address?: string;
+      email_type?: string;
+      template_category?: string;
+      change_notes?: string;
+    }
+  ): Promise<any> {
+    return this.callAdminAPI("updateEmailTemplate", {
+      templateId,
+      ...data,
+      target_type: "email_template",
+      target_id: templateId,
+    });
+  }
+
+  async getEmailVersions(templateId: string): Promise<any[]> {
+    return this.callAdminAPI("getEmailVersions", { templateId });
+  }
+
+  async restoreEmailVersion(
+    templateId: string,
+    versionId: string,
+    changeNotes?: string
+  ): Promise<any> {
+    return this.callAdminAPI("restoreEmailVersion", {
+      templateId,
+      versionId,
+      change_notes: changeNotes,
+      target_type: "email_template",
+      target_id: templateId,
+    });
+  }
+
+  async exportEmailTemplates(templateIds?: string[]): Promise<any> {
+    return this.callAdminAPI("exportEmailTemplates", { templateIds });
+  }
+
+  async importEmailTemplates(
+    data: any,
+    strategy: "skip" | "overwrite" | "create_new" = "skip"
+  ): Promise<{
+    imported: number;
+    skipped: number;
+    errors: string[];
+  }> {
+    return this.callAdminAPI("importEmailTemplates", {
+      data,
+      strategy,
+      target_type: "email_template",
+      target_id: "import",
+    });
+  }
+
+  async sendTestEmail(
+    templateId: string,
+    testEmail: string,
+    variables?: Record<string, any>
+  ): Promise<{
+    success: boolean;
+    messageId?: string;
+    error?: string;
+    timestamp: string;
+  }> {
+    return this.callAdminAPI("sendTestEmail", {
+      templateId,
+      testEmail,
+      variables,
+    });
+  }
+
+  async getEmailCategories(): Promise<string[]> {
+    return this.callAdminAPI("getEmailCategories");
   }
 }
 

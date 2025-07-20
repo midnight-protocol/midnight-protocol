@@ -378,6 +378,50 @@ CREATE TABLE IF NOT EXISTS "public"."email_logs" (
 ALTER TABLE "public"."email_logs" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."email_template_versions" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "email_template_id" "uuid" NOT NULL,
+    "version" integer NOT NULL,
+    "subject_template" "text" NOT NULL,
+    "html_template" "text" NOT NULL,
+    "text_template" "text",
+    "variables" "jsonb" DEFAULT '[]'::"jsonb",
+    "default_from_address" "text",
+    "change_notes" "text",
+    "created_by" "uuid",
+    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
+    "is_current" boolean DEFAULT false NOT NULL,
+    "email_type" "text" DEFAULT 'transactional'::"text",
+    "category" "text" DEFAULT 'general'::"text"
+);
+
+
+ALTER TABLE "public"."email_template_versions" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."email_template_versions" IS 'Versioned email template content with subject, HTML, and optional text templates';
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."email_templates" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "name" "text" NOT NULL,
+    "description" "text",
+    "category" "text" DEFAULT 'general'::"text",
+    "created_by" "uuid",
+    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
+    "metadata" "jsonb" DEFAULT '{}'::"jsonb"
+);
+
+
+ALTER TABLE "public"."email_templates" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."email_templates" IS 'Email template metadata only. Active template content is in email_template_versions with is_current = true';
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."introduction_emails" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "introduction_request_id" "uuid" NOT NULL,
@@ -855,6 +899,21 @@ ALTER TABLE ONLY "public"."email_logs"
 
 
 
+ALTER TABLE ONLY "public"."email_template_versions"
+    ADD CONSTRAINT "email_template_versions_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."email_templates"
+    ADD CONSTRAINT "email_templates_name_key" UNIQUE ("name");
+
+
+
+ALTER TABLE ONLY "public"."email_templates"
+    ADD CONSTRAINT "email_templates_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."introduction_emails"
     ADD CONSTRAINT "introduction_emails_pkey" PRIMARY KEY ("id");
 
@@ -1092,6 +1151,26 @@ CREATE INDEX "idx_email_logs_user_id" ON "public"."email_logs" USING "btree" ("u
 
 
 
+CREATE UNIQUE INDEX "idx_email_template_versions_current" ON "public"."email_template_versions" USING "btree" ("email_template_id") WHERE ("is_current" = true);
+
+
+
+CREATE INDEX "idx_email_template_versions_template_id" ON "public"."email_template_versions" USING "btree" ("email_template_id");
+
+
+
+CREATE INDEX "idx_email_template_versions_version" ON "public"."email_template_versions" USING "btree" ("email_template_id", "version");
+
+
+
+CREATE INDEX "idx_email_templates_category" ON "public"."email_templates" USING "btree" ("category");
+
+
+
+CREATE INDEX "idx_email_templates_created_at" ON "public"."email_templates" USING "btree" ("created_at");
+
+
+
 CREATE INDEX "idx_introduction_emails_status" ON "public"."introduction_emails" USING "btree" ("status", "created_at" DESC);
 
 
@@ -1302,7 +1381,22 @@ ALTER TABLE ONLY "public"."agent_profiles"
 
 
 ALTER TABLE ONLY "public"."email_logs"
-    ADD CONSTRAINT "email_logs_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id");
+    ADD CONSTRAINT "email_logs_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."email_template_versions"
+    ADD CONSTRAINT "email_template_versions_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."email_template_versions"
+    ADD CONSTRAINT "email_template_versions_email_template_id_fkey" FOREIGN KEY ("email_template_id") REFERENCES "public"."email_templates"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."email_templates"
+    ADD CONSTRAINT "email_templates_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id");
 
 
 
@@ -1337,7 +1431,7 @@ ALTER TABLE ONLY "public"."morning_reports"
 
 
 ALTER TABLE ONLY "public"."omniscient_conversations"
-    ADD CONSTRAINT "omniscient_conversations_match_id_fkey" FOREIGN KEY ("match_id") REFERENCES "public"."omniscient_matches"("id");
+    ADD CONSTRAINT "omniscient_conversations_match_id_fkey" FOREIGN KEY ("match_id") REFERENCES "public"."omniscient_matches"("id") ON DELETE CASCADE;
 
 
 
@@ -1367,7 +1461,7 @@ ALTER TABLE ONLY "public"."omniscient_outcomes"
 
 
 ALTER TABLE ONLY "public"."omniscient_outcomes"
-    ADD CONSTRAINT "omniscient_outcomes_match_id_fkey" FOREIGN KEY ("match_id") REFERENCES "public"."omniscient_matches"("id");
+    ADD CONSTRAINT "omniscient_outcomes_match_id_fkey" FOREIGN KEY ("match_id") REFERENCES "public"."omniscient_matches"("id") ON DELETE CASCADE;
 
 
 
@@ -1377,7 +1471,7 @@ ALTER TABLE ONLY "public"."omniscient_turns"
 
 
 ALTER TABLE ONLY "public"."omniscient_turns"
-    ADD CONSTRAINT "omniscient_turns_speaker_user_id_fkey" FOREIGN KEY ("speaker_user_id") REFERENCES "public"."users"("id");
+    ADD CONSTRAINT "omniscient_turns_speaker_user_id_fkey" FOREIGN KEY ("speaker_user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE;
 
 
 
@@ -1427,7 +1521,7 @@ ALTER TABLE ONLY "public"."user_activities"
 
 
 ALTER TABLE ONLY "public"."user_referrals"
-    ADD CONSTRAINT "user_referrals_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id");
+    ADD CONSTRAINT "user_referrals_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE;
 
 
 
@@ -2216,6 +2310,18 @@ GRANT ALL ON TABLE "public"."email_interests" TO "service_role";
 GRANT ALL ON TABLE "public"."email_logs" TO "anon";
 GRANT ALL ON TABLE "public"."email_logs" TO "authenticated";
 GRANT ALL ON TABLE "public"."email_logs" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."email_template_versions" TO "anon";
+GRANT ALL ON TABLE "public"."email_template_versions" TO "authenticated";
+GRANT ALL ON TABLE "public"."email_template_versions" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."email_templates" TO "anon";
+GRANT ALL ON TABLE "public"."email_templates" TO "authenticated";
+GRANT ALL ON TABLE "public"."email_templates" TO "service_role";
 
 
 
