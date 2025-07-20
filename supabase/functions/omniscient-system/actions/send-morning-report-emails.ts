@@ -239,8 +239,22 @@ export default async function sendMorningReportEmails(
           `🔍 User email: ${userEmail}, recipient email: ${recipientEmail}`
         );
 
-        // Generate email content (keep original user context for personalization)
-        const emailContent = generateEmailContent(
+        if (dryRun) {
+          console.log(
+            `📋 Dry run email for ${recipientEmail}${
+              emailOverride ? ` (original: ${userEmail})` : ""
+            }:`,
+            {
+              subject: `🌅 Your Morning Report - ${report.notification_count > 0 ? `${report.notification_count} new opportunities` : "Network growing"}`,
+              notificationCount: report.notification_count,
+            }
+          );
+          emailsSent++;
+          continue;
+        }
+
+        // Prepare template variables
+        const templateVariables = prepareTemplateVariables(
           report,
           {
             ...user,
@@ -250,33 +264,24 @@ export default async function sendMorningReportEmails(
           emailOverride
         );
 
-        if (dryRun) {
-          console.log(
-            `📋 Dry run email for ${recipientEmail}${
-              emailOverride ? ` (original: ${userEmail})` : ""
-            }:`,
-            {
-              subject: emailContent.subject,
-              previewText: emailContent.body.substring(0, 100) + "...",
-              notificationCount: report.notification_count,
-            }
-          );
-          emailsSent++;
-          continue;
-        }
-
-        // Send email with rate limiting and retry logic
+        // Send email using template with rate limiting and retry logic
         let emailResponse;
         let retryCount = 0;
         const maxRetries = 3;
 
         while (retryCount <= maxRetries) {
           try {
-            emailResponse = await emailService.sendEmail({
-              to: recipientEmail,
-              subject: emailContent.subject,
-              html: emailContent.body,
-            });
+            // Look up template ID by name
+            const templateId = await getTemplateIdByName(supabase, "morning_report");
+            if (!templateId) {
+              throw new Error('Morning report template not found in database');
+            }
+
+            emailResponse = await emailService.sendTemplateById(
+              templateId,
+              recipientEmail,
+              templateVariables
+            );
 
             if (emailResponse.status === "sent") {
               break; // Success, exit retry loop
@@ -409,199 +414,220 @@ export default async function sendMorningReportEmails(
   }
 }
 
-// Helper function to generate email content
-function generateEmailContent(report: any, user: any, emailOverride?: string) {
+// Helper function to prepare template variables
+function prepareTemplateVariables(report: any, user: any, emailOverride?: string) {
   const hasNotifications = report.notification_count > 0;
   const appUrl = Deno.env.get("VITE_APP_URL") || "https://midnightprotocol.com";
   const matchNotifications = report.match_notifications || [];
+  const reportDate = report.report_date || new Date().toISOString().split("T")[0];
 
   // Calculate strong matches count from notifications (assuming high opportunity scores are "strong")
   const strongMatches = matchNotifications.filter(match => 
     match.opportunity_score && match.opportunity_score > 7.0
   ).length;
 
-  const subject = `🌅 Your Morning Report - ${
-    hasNotifications
+  return {
+    subject_suffix: hasNotifications 
       ? `${report.notification_count} new opportunities`
-      : "Network growing"
-  }`;
+      : "Network growing",
+    user_name_greeting: user.full_name ? ` ${user.full_name}` : '',
+    user_email: user.email || '',
+    testing_notice: emailOverride 
+      ? '<div class="testing-notice"><strong>🧪 Testing Mode:</strong> This email was sent to an override address for testing purposes.</div>'
+      : '',
+    main_content: hasNotifications 
+      ? buildDiscoveriesContent(report, matchNotifications, strongMatches, appUrl)
+      : buildNoDiscoveriesContent(appUrl),
+    main_text_content: hasNotifications
+      ? buildDiscoveriesTextContent(report, matchNotifications, appUrl)
+      : buildNoDiscoveriesTextContent(appUrl),
+    app_url: appUrl,
+    report_date: reportDate,
+    current_year: new Date().getFullYear()
+  };
+}
 
-  const emailHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your Midnight Protocol Morning Report</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
-    .container { max-width: 600px; margin: 0 auto; background: white; }
-    .header { background: #0a0a0a; color: #22ef5e; padding: 30px; text-align: center; }
-    .header h1 { margin: 0; font-size: 24px; font-weight: 600; }
-    .header .tagline { margin-top: 10px; opacity: 0.8; font-size: 14px; }
-    .content { padding: 30px; }
-    .greeting { font-size: 18px; margin-bottom: 20px; }
-    .summary-box { background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 30px; }
-    .summary-stat { display: inline-block; margin-right: 30px; }
-    .summary-number { font-size: 24px; font-weight: bold; color: #22ef5e; }
-    .summary-label { font-size: 12px; color: #666; text-transform: uppercase; }
-    .discovery { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-    .discovery-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; }
-    .discovery-user { font-weight: 600; font-size: 16px; }
-    .discovery-type { font-size: 12px; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; }
-    .type-strong { background: #22ef5e; color: #0a0a0a; }
-    .type-exploratory { background: #40c4ff; color: white; }
-    .type-future { background: #ff9800; color: white; }
-    .discovery-summary { margin-bottom: 15px; color: #555; }
-    .synergies { margin-bottom: 15px; }
-    .synergy-item { background: #f0f8ff; padding: 8px 12px; border-radius: 4px; margin-bottom: 8px; font-size: 14px; }
-    .conversation-snippet { background: #f8f9fa; border-left: 3px solid #22ef5e; padding: 10px 15px; margin: 15px 0; font-size: 14px; }
-    .intro-cta { display: inline-block; background: #22ef5e; color: #0a0a0a; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; margin-top: 10px; }
-    .intro-cta:hover { background: #1dd54d; }
-    .insights { background: #fafafa; border-radius: 8px; padding: 20px; margin-top: 30px; }
-    .insights h3 { margin-top: 0; color: #333; }
-    .insight-list { margin: 10px 0; }
-    .insight-item { margin-bottom: 8px; padding-left: 20px; position: relative; }
-    .insight-item:before { content: "→"; position: absolute; left: 0; color: #22ef5e; }
-    .footer { background: #f5f5f5; padding: 30px; text-align: center; font-size: 12px; color: #666; }
-    .footer a { color: #22ef5e; text-decoration: none; }
-    .no-discoveries { text-align: center; padding: 40px; color: #666; }
-    .no-discoveries .emoji { font-size: 48px; margin-bottom: 20px; }
-    .testing-notice { background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin-bottom: 20px; border-radius: 5px; color: #856404; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    ${emailOverride ? '<div class="testing-notice"><strong>🧪 Testing Mode:</strong> This email was sent to an override address for testing purposes.</div>' : ''}
-    
-    <div class="header">
-      <h1>🌙 MIDNIGHT PROTOCOL</h1>
-      <div class="tagline">Your AI agent worked while you slept</div>
-    </div>
-    
-    <div class="content">
-      <div class="greeting">
-        Good morning${user.full_name ? ` ${user.full_name}` : ''}! ☀️
+// Helper function to build discoveries HTML content
+function buildDiscoveriesContent(report: any, matchNotifications: any[], strongMatches: number, appUrl: string): string {
+  const summaryBox = `
+    <div class="summary-box">
+      <div class="summary-stat">
+        <div class="summary-number">${report.notification_count}</div>
+        <div class="summary-label">Notifications</div>
       </div>
-      
-      ${hasNotifications ? `
-        <div class="summary-box">
-          <div class="summary-stat">
-            <div class="summary-number">${report.notification_count}</div>
-            <div class="summary-label">Notifications</div>
-          </div>
-          ${strongMatches > 0 ? `
-            <div class="summary-stat">
-              <div class="summary-number">${strongMatches}</div>
-              <div class="summary-label">Strong Matches</div>
-            </div>
-          ` : ''}
-          <div class="summary-stat">
-            <div class="summary-number">${matchNotifications.length}</div>
-            <div class="summary-label">Opportunities</div>
-          </div>
+      ${strongMatches > 0 ? `
+        <div class="summary-stat">
+          <div class="summary-number">${strongMatches}</div>
+          <div class="summary-label">Strong Matches</div>
         </div>
+      ` : ''}
+      <div class="summary-stat">
+        <div class="summary-number">${matchNotifications.length}</div>
+        <div class="summary-label">Opportunities</div>
+      </div>
+    </div>`;
 
-        <h2 style="margin-bottom: 20px;">🎯 Today's Discoveries</h2>
+  const discoveryCards = matchNotifications.slice(0, 5).map(match => {
+    const matchType = match.opportunity_score > 7.0 ? 'strong' : 
+                     match.opportunity_score > 5.0 ? 'exploratory' : 'future';
+    const userName = match.other_user?.full_name || 
+                     match.other_user?.handle || 
+                     'Someone interesting';
+    
+    return `
+      <div class="discovery">
+        <div class="discovery-header">
+          <div class="discovery-user">${userName}</div>
+          <div class="discovery-type type-${matchType}">${matchType} match</div>
+        </div>
         
-        ${matchNotifications.slice(0, 5).map(match => `
-          <div class="discovery">
-            <div class="discovery-header">
-              <div class="discovery-user">${
-                match.other_user?.full_name || 
-                match.other_user?.handle || 
-                'Someone interesting'
-              }</div>
-              <div class="discovery-type type-${match.opportunity_score > 7.0 ? 'strong' : match.opportunity_score > 5.0 ? 'exploratory' : 'future'}">${
-                match.opportunity_score > 7.0 ? 'strong' : 
-                match.opportunity_score > 5.0 ? 'exploratory' : 'future'
-              } match</div>
-            </div>
-            
-            <div class="discovery-summary">
-              ${match.notification_reasoning}
-            </div>
-            
-            ${match.introduction_rationale ? `
-              <div class="synergies">
-                <strong>Introduction rationale:</strong>
-                <div class="synergy-item">💡 ${match.introduction_rationale}</div>
-              </div>
-            ` : ''}
-            
-            <a href="${appUrl}/dashboard" class="intro-cta">
-              View in Dashboard →
-            </a>
-          </div>
-        `).join('')}
-
-        ${report.agent_insights && (
-          report.agent_insights.patterns_observed?.length > 0 ||
-          report.agent_insights.top_opportunities?.length > 0 ||
-          report.agent_insights.recommended_actions?.length > 0
-        ) ? `
-          <div class="insights">
-            <h3>🤖 Your Agent's Insights</h3>
-            
-            ${report.agent_insights.patterns_observed?.length > 0 ? `
-              <div class="insight-section">
-                <strong>Patterns I noticed:</strong>
-                <div class="insight-list">
-                  ${report.agent_insights.patterns_observed.map(pattern => 
-                    `<div class="insight-item">${pattern}</div>`
-                  ).join('')}
-                </div>
-              </div>
-            ` : ''}
-            
-            ${report.agent_insights.top_opportunities?.length > 0 ? `
-              <div class="insight-section" style="margin-top: 15px;">
-                <strong>Top opportunities:</strong>
-                <div class="insight-list">
-                  ${report.agent_insights.top_opportunities.map(opp => 
-                    `<div class="insight-item">${opp}</div>`
-                  ).join('')}
-                </div>
-              </div>
-            ` : ''}
-            
-            ${report.agent_insights.recommended_actions?.length > 0 ? `
-              <div class="insight-section" style="margin-top: 15px;">
-                <strong>Recommended next steps:</strong>
-                <div class="insight-list">
-                  ${report.agent_insights.recommended_actions.map(action => 
-                    `<div class="insight-item">${action}</div>`
-                  ).join('')}
-                </div>
-              </div>
-            ` : ''}
+        <div class="discovery-summary">
+          ${match.notification_reasoning}
+        </div>
+        
+        ${match.introduction_rationale ? `
+          <div class="synergies">
+            <strong>Introduction rationale:</strong>
+            <div class="synergy-item">💡 ${match.introduction_rationale}</div>
           </div>
         ` : ''}
-      ` : `
-        <div class="no-discoveries">
-          <div class="emoji">🌱</div>
-          <h2>Building Your Network</h2>
-          <p>Your agent didn't find any new opportunities last night, but don't worry! As more people join Midnight Protocol, you'll see more opportunities appear here.</p>
-          <p style="margin-top: 20px;">
-            <a href="${appUrl}/dashboard" class="intro-cta">Update Your Story →</a>
-          </p>
-        </div>
-      `}
-    </div>
-    
-    <div class="footer">
-      <p>
-        <a href="${appUrl}/dashboard">View Full Report</a> • 
-        <a href="${appUrl}/settings">Update Preferences</a> • 
-        <a href="${appUrl}/unsubscribe?email=${encodeURIComponent(user.email || '')}&type=morning_reports">Unsubscribe</a>
-      </p>
-      <p style="margin-top: 15px;">
-        © ${new Date().getFullYear()} Midnight Protocol. Your AI agent works while you sleep.
-      </p>
-    </div>
-  </div>
-</body>
-</html>`;
+        
+        <a href="${appUrl}/dashboard" class="intro-cta">
+          View in Dashboard →
+        </a>
+      </div>`;
+  }).join('');
 
-  return { subject, body: emailHtml };
+  const agentInsights = buildAgentInsightsContent(report.agent_insights);
+
+  return `
+    ${summaryBox}
+    <h2 style="margin-bottom: 20px;">🎯 Today's Discoveries</h2>
+    ${discoveryCards}
+    ${agentInsights}
+  `;
+}
+
+// Helper function to build agent insights HTML content
+function buildAgentInsightsContent(agentInsights: any): string {
+  if (!agentInsights || (
+    (!agentInsights.patterns_observed?.length) &&
+    (!agentInsights.top_opportunities?.length) &&
+    (!agentInsights.recommended_actions?.length)
+  )) {
+    return '';
+  }
+
+  const sections = [];
+
+  if (agentInsights.patterns_observed?.length > 0) {
+    sections.push(`
+      <div class="insight-section">
+        <strong>Patterns I noticed:</strong>
+        <div class="insight-list">
+          ${agentInsights.patterns_observed.map(pattern => 
+            `<div class="insight-item">${pattern}</div>`
+          ).join('')}
+        </div>
+      </div>
+    `);
+  }
+
+  if (agentInsights.top_opportunities?.length > 0) {
+    sections.push(`
+      <div class="insight-section" style="margin-top: 15px;">
+        <strong>Top opportunities:</strong>
+        <div class="insight-list">
+          ${agentInsights.top_opportunities.map(opp => 
+            `<div class="insight-item">${opp}</div>`
+          ).join('')}
+        </div>
+      </div>
+    `);
+  }
+
+  if (agentInsights.recommended_actions?.length > 0) {
+    sections.push(`
+      <div class="insight-section" style="margin-top: 15px;">
+        <strong>Recommended next steps:</strong>
+        <div class="insight-list">
+          ${agentInsights.recommended_actions.map(action => 
+            `<div class="insight-item">${action}</div>`
+          ).join('')}
+        </div>
+      </div>
+    `);
+  }
+
+  return `
+    <div class="insights">
+      <h3>🤖 Your Agent's Insights</h3>
+      ${sections.join('')}
+    </div>
+  `;
+}
+
+// Helper function to build no discoveries HTML content
+function buildNoDiscoveriesContent(appUrl: string): string {
+  return `
+    <div class="no-discoveries">
+      <div class="emoji">🌱</div>
+      <h2>Building Your Network</h2>
+      <p>Your agent didn't find any new opportunities last night, but don't worry! As more people join Midnight Protocol, you'll see more opportunities appear here.</p>
+      <p style="margin-top: 20px;">
+        <a href="${appUrl}/dashboard" class="intro-cta">Update Your Story →</a>
+      </p>
+    </div>
+  `;
+}
+
+// Helper function to build discoveries text content
+function buildDiscoveriesTextContent(report: any, matchNotifications: any[], appUrl: string): string {
+  const discoveries = matchNotifications.slice(0, 5).map((match, i) => {
+    const userName = match.other_user?.full_name || match.other_user?.handle || 'Someone interesting';
+    return `${i + 1}. ${userName}
+   ${match.notification_reasoning}
+   ${match.introduction_rationale ? `Introduction rationale: ${match.introduction_rationale}` : ''}
+   View in dashboard: ${appUrl}/dashboard
+`;
+  }).join('\n');
+
+  const recommendedActions = report.agent_insights?.recommended_actions?.length > 0 ? `
+
+RECOMMENDED ACTIONS:
+${report.agent_insights.recommended_actions.map(action => `• ${action}`).join('\n')}
+` : '';
+
+  return `Your agent had ${report.notification_count} notifications last night and discovered ${matchNotifications.length} opportunities.
+
+TODAY'S DISCOVERIES:
+${discoveries}${recommendedActions}`;
+}
+
+// Helper function to build no discoveries text content
+function buildNoDiscoveriesTextContent(appUrl: string): string {
+  return `Your agent didn't find any new opportunities last night. As more people join Midnight Protocol, you'll see more opportunities appear here.
+
+Update your story: ${appUrl}/dashboard`;
+}
+
+// Helper function to get template ID by name
+async function getTemplateIdByName(supabase: any, templateName: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('email_templates')
+      .select('id')
+      .eq('name', templateName)
+      .single();
+
+    if (error) {
+      console.error(`Error fetching template by name "${templateName}":`, error);
+      return null;
+    }
+
+    return data?.id || null;
+  } catch (error) {
+    console.error(`Failed to lookup template "${templateName}":`, error);
+    return null;
+  }
 }
