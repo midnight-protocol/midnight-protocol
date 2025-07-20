@@ -1,12 +1,24 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Users, Search } from 'lucide-react';
-import { adminAPIService } from '@/services/admin-api.service';
-import { toast } from 'sonner';
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, Users, Search } from "lucide-react";
+import { adminAPIService } from "@/services/admin-api.service";
+import { toast } from "sonner";
 
 interface User {
   id: string;
@@ -18,7 +30,12 @@ interface User {
 interface UserSelectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (userIdA: string, userIdB: string, userAHandle: string, userBHandle: string) => void;
+  onConfirm: (
+    userIdA: string,
+    userIdB: string,
+    userAHandle: string,
+    userBHandle: string
+  ) => void;
   loading?: boolean;
 }
 
@@ -26,13 +43,13 @@ export const UserSelectionDialog: React.FC<UserSelectionDialogProps> = ({
   open,
   onOpenChange,
   onConfirm,
-  loading = false
+  loading = false,
 }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
-  const [selectedUserA, setSelectedUserA] = useState<string>('');
-  const [selectedUserB, setSelectedUserB] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUserA, setSelectedUserA] = useState<string>("");
+  const [selectedUserB, setSelectedUserB] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch users when dialog opens
   useEffect(() => {
@@ -47,14 +64,14 @@ export const UserSelectionDialog: React.FC<UserSelectionDialogProps> = ({
       const result = await adminAPIService.searchUsers({
         limit: 200, // Get a reasonable number of users
         offset: 0,
-        status: 'APPROVED', // Only show approved users
-        sortBy: 'handle',
-        sortOrder: 'asc'
+        status: "APPROVED", // Only show approved users
+        sortBy: "handle",
+        sortOrder: "asc",
       });
       setUsers(result.users || []);
     } catch (error) {
-      console.error('Failed to fetch users:', error);
-      toast.error('Failed to load users');
+      console.error("Failed to fetch users:", error);
+      toast.error("Failed to load users");
     } finally {
       setLoadingUsers(false);
     }
@@ -63,11 +80,12 @@ export const UserSelectionDialog: React.FC<UserSelectionDialogProps> = ({
   // Filter users based on search term
   const filteredUsers = useMemo(() => {
     if (!searchTerm) return users;
-    return users.filter(user => 
-      user.handle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.agent_profiles?.some(profile => 
-        profile.agent_name.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+    return users.filter(
+      (user) =>
+        user.handle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.agent_profiles?.some((profile) =>
+          profile.agent_name.toLowerCase().includes(searchTerm.toLowerCase())
+        )
     );
   }, [users, searchTerm]);
 
@@ -78,26 +96,27 @@ export const UserSelectionDialog: React.FC<UserSelectionDialogProps> = ({
   };
 
   // Get selected users for validation
-  const selectedUserAData = users.find(u => u.id === selectedUserA);
-  const selectedUserBData = users.find(u => u.id === selectedUserB);
+  const selectedUserAData = users.find((u) => u.id === selectedUserA);
+  const selectedUserBData = users.find((u) => u.id === selectedUserB);
 
-  const canConfirm = selectedUserA && selectedUserB && selectedUserA !== selectedUserB;
+  const canConfirm =
+    selectedUserA && selectedUserB && selectedUserA !== selectedUserB;
 
   const handleConfirm = () => {
     if (canConfirm && selectedUserAData && selectedUserBData) {
       onConfirm(
-        selectedUserA, 
-        selectedUserB, 
-        selectedUserAData.handle, 
+        selectedUserA,
+        selectedUserB,
+        selectedUserAData.handle,
         selectedUserBData.handle
       );
     }
   };
 
   const handleClose = () => {
-    setSelectedUserA('');
-    setSelectedUserB('');
-    setSearchTerm('');
+    setSelectedUserA("");
+    setSelectedUserB("");
+    setSearchTerm("");
     onOpenChange(false);
   };
 
@@ -115,7 +134,7 @@ export const UserSelectionDialog: React.FC<UserSelectionDialogProps> = ({
           {/* Search Input */}
           <div>
             <Label className="text-sm font-medium text-gray-300 mb-2 block">
-              Search Users
+              Filter Users by Name or Handle (filters the lists below)
             </Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -148,8 +167,8 @@ export const UserSelectionDialog: React.FC<UserSelectionDialogProps> = ({
                   </SelectTrigger>
                   <SelectContent className="bg-gray-700 border-gray-600 max-h-60">
                     {filteredUsers.map((user) => (
-                      <SelectItem 
-                        key={user.id} 
+                      <SelectItem
+                        key={user.id}
                         value={user.id}
                         className="text-white hover:bg-gray-600"
                         disabled={user.id === selectedUserB}
@@ -172,8 +191,8 @@ export const UserSelectionDialog: React.FC<UserSelectionDialogProps> = ({
                   </SelectTrigger>
                   <SelectContent className="bg-gray-700 border-gray-600 max-h-60">
                     {filteredUsers.map((user) => (
-                      <SelectItem 
-                        key={user.id} 
+                      <SelectItem
+                        key={user.id}
                         value={user.id}
                         className="text-white hover:bg-gray-600"
                         disabled={user.id === selectedUserA}
@@ -186,23 +205,33 @@ export const UserSelectionDialog: React.FC<UserSelectionDialogProps> = ({
               </div>
 
               {/* Validation Message */}
-              {selectedUserA && selectedUserB && selectedUserA === selectedUserB && (
-                <div className="text-red-400 text-sm">
-                  Please select two different users.
-                </div>
-              )}
+              {selectedUserA &&
+                selectedUserB &&
+                selectedUserA === selectedUserB && (
+                  <div className="text-red-400 text-sm">
+                    Please select two different users.
+                  </div>
+                )}
 
               {/* Selected Users Summary */}
-              {selectedUserAData && selectedUserBData && selectedUserA !== selectedUserB && (
-                <div className="p-3 bg-gray-700 rounded-lg">
-                  <div className="text-sm text-gray-300 mb-1">Match Preview:</div>
-                  <div className="text-sm text-white">
-                    <span className="font-medium">{selectedUserAData.handle}</span>
-                    {' × '}
-                    <span className="font-medium">{selectedUserBData.handle}</span>
+              {selectedUserAData &&
+                selectedUserBData &&
+                selectedUserA !== selectedUserB && (
+                  <div className="p-3 bg-gray-700 rounded-lg">
+                    <div className="text-sm text-gray-300 mb-1">
+                      Match Preview:
+                    </div>
+                    <div className="text-sm text-white">
+                      <span className="font-medium">
+                        {selectedUserAData.handle}
+                      </span>
+                      {" × "}
+                      <span className="font-medium">
+                        {selectedUserBData.handle}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </>
           )}
         </div>
@@ -227,7 +256,7 @@ export const UserSelectionDialog: React.FC<UserSelectionDialogProps> = ({
                 Creating Match...
               </>
             ) : (
-              'Create Match'
+              "Create Match"
             )}
           </Button>
         </DialogFooter>
