@@ -124,3 +124,7 @@ The comprehensive admin system includes:
 - Deprecating all direct Supabase SDK calls from pages and components
 - All calls must eventually use one of the appropriate API services
 - API services should always invoke edge functions and never make database calls directly from the Supabase SDK
+
+## Claude Code Guidelines
+- Always ask the user to run Supabase CLI commands for you, never run them directly
+- Dont try to check linting after implementing a feature
