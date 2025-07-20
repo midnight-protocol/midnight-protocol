@@ -95,6 +95,8 @@ const EmailTemplateEditor = () => {
   const [importData, setImportData] = useState("");
   const [importStrategy, setImportStrategy] = useState<"skip" | "overwrite" | "create_new">("skip");
   const [previewMode, setPreviewMode] = useState<"subject" | "html" | "text">("html");
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [previewVariables, setPreviewVariables] = useState<Record<string, string>>({});
 
   // Queries
   const { data: templates = [], isLoading: templatesLoading } = useQuery({
@@ -347,6 +349,20 @@ const EmailTemplateEditor = () => {
     } catch (error) {
       toast.error("Invalid JSON format");
     }
+  };
+
+  const handlePreview = () => {
+    if (!selectedTemplate) return;
+    
+    // Initialize preview variables with defaults
+    const allVariables = getAllVariables(selectedTemplate);
+    const defaultVariables: Record<string, string> = {};
+    allVariables.forEach(variable => {
+      defaultVariables[variable] = `[${variable}]`;
+    });
+    
+    setPreviewVariables(defaultVariables);
+    setShowPreviewDialog(true);
   };
 
   const emailTypes = [
@@ -700,6 +716,7 @@ const EmailTemplateEditor = () => {
                     <Button
                       size="sm"
                       variant="outline"
+                      onClick={handlePreview}
                       className="border-terminal-green text-terminal-green hover:bg-terminal-green/10"
                     >
                       <Eye className="w-4 h-4 mr-1" />
@@ -875,6 +892,152 @@ const EmailTemplateEditor = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+        <DialogContent className="bg-terminal-bg border-terminal-green/30 max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-terminal-green">
+              Email Preview: {selectedTemplate?.name}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedTemplate && (
+            <div className="space-y-6">
+              {/* Variable Inputs */}
+              {getAllVariables(selectedTemplate).length > 0 && (
+                <div>
+                  <Label className="text-terminal-green font-mono text-sm">
+                    Template Variables
+                  </Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                    {getAllVariables(selectedTemplate).map((variable) => (
+                      <div key={variable}>
+                        <Label htmlFor={`preview-${variable}`} className="text-sm">
+                          {variable}
+                        </Label>
+                        <Input
+                          id={`preview-${variable}`}
+                          value={previewVariables[variable] || ""}
+                          onChange={(e) =>
+                            setPreviewVariables({
+                              ...previewVariables,
+                              [variable]: e.target.value,
+                            })
+                          }
+                          className="bg-terminal-bg border-terminal-green/30 text-terminal-text"
+                          placeholder={`Value for {{${variable}}}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Preview Tabs */}
+              <Tabs defaultValue="subject" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="subject">Subject Preview</TabsTrigger>
+                  <TabsTrigger value="html">HTML Preview</TabsTrigger>
+                  {selectedTemplate.text_template && (
+                    <TabsTrigger value="text">Text Preview</TabsTrigger>
+                  )}
+                </TabsList>
+                
+                <TabsContent value="subject" className="space-y-4">
+                  <div>
+                    <Label>Raw Subject Template</Label>
+                    <div className="p-3 bg-terminal-green/5 rounded font-mono text-sm border border-terminal-green/20">
+                      {selectedTemplate.subject_template}
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Processed Subject</Label>
+                    <div className="p-3 bg-terminal-bg border border-terminal-green/30 rounded font-mono text-sm">
+                      {processPreview(selectedTemplate.subject_template, previewVariables)}
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="html" className="space-y-4">
+                  <div>
+                    <Label>Raw HTML Template</Label>
+                    <div className="p-3 bg-terminal-green/5 rounded font-mono text-sm border border-terminal-green/20 max-h-48 overflow-y-auto">
+                      <pre className="whitespace-pre-wrap">{selectedTemplate.html_template}</pre>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Processed HTML</Label>
+                    <div className="p-3 bg-terminal-bg border border-terminal-green/30 rounded max-h-64 overflow-y-auto">
+                      <div 
+                        className="prose prose-invert max-w-none"
+                        dangerouslySetInnerHTML={{
+                          __html: processPreview(selectedTemplate.html_template, previewVariables)
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>HTML Source (Processed)</Label>
+                    <div className="p-3 bg-terminal-green/5 rounded font-mono text-xs border border-terminal-green/20 max-h-48 overflow-y-auto">
+                      <pre className="whitespace-pre-wrap">
+                        {processPreview(selectedTemplate.html_template, previewVariables)}
+                      </pre>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                {selectedTemplate.text_template && (
+                  <TabsContent value="text" className="space-y-4">
+                    <div>
+                      <Label>Raw Text Template</Label>
+                      <div className="p-3 bg-terminal-green/5 rounded font-mono text-sm border border-terminal-green/20 max-h-48 overflow-y-auto">
+                        <pre className="whitespace-pre-wrap">{selectedTemplate.text_template}</pre>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Processed Text</Label>
+                      <div className="p-3 bg-terminal-bg border border-terminal-green/30 rounded font-mono text-sm max-h-64 overflow-y-auto">
+                        <pre className="whitespace-pre-wrap">
+                          {processPreview(selectedTemplate.text_template, previewVariables)}
+                        </pre>
+                      </div>
+                    </div>
+                  </TabsContent>
+                )}
+              </Tabs>
+
+              {/* Template Info */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-terminal-green/5 rounded border border-terminal-green/20">
+                <div>
+                  <strong className="text-terminal-green">From:</strong>{" "}
+                  {selectedTemplate.default_from_address || "Default system address"}
+                </div>
+                <div>
+                  <strong className="text-terminal-green">Type:</strong>{" "}
+                  {selectedTemplate.email_type}
+                </div>
+                <div>
+                  <strong className="text-terminal-green">Category:</strong>{" "}
+                  {selectedTemplate.category}
+                </div>
+                <div>
+                  <strong className="text-terminal-green">Version:</strong>{" "}
+                  v{selectedTemplate.version}
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <DialogClose asChild>
+                  <Button variant="outline" className="border-terminal-green/30">
+                    Close
+                  </Button>
+                </DialogClose>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

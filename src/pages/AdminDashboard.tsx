@@ -166,7 +166,7 @@ const AdminDashboard = () => {
                 <span className="hidden sm:inline">System Cfg.</span>
                 <span className="sm:hidden">Config</span>
               </TabsTrigger>
-              <TabsTrigger
+              {/* <TabsTrigger
                 value="activity"
                 className="data-[state=active]:bg-terminal-green data-[state=active]:text-terminal-bg flex-shrink-0 text-xs sm:text-sm"
               >
@@ -181,7 +181,7 @@ const AdminDashboard = () => {
                 <Database className="w-4 h-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Metrics</span>
                 <span className="sm:hidden">Metrics</span>
-              </TabsTrigger>
+              </TabsTrigger> */}
               <TabsTrigger
                 value="prompts"
                 className="data-[state=active]:bg-terminal-green data-[state=active]:text-terminal-bg flex-shrink-0 text-xs sm:text-sm"
@@ -203,16 +203,16 @@ const AdminDashboard = () => {
                 className="data-[state=active]:bg-terminal-green data-[state=active]:text-terminal-bg flex-shrink-0 text-xs sm:text-sm"
               >
                 <Mail className="w-4 h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Emails</span>
-                <span className="sm:hidden">Email</span>
+                <span className="hidden sm:inline">Interest List</span>
+                <span className="sm:hidden">Interests</span>
               </TabsTrigger>
               <TabsTrigger
                 value="email-templates"
                 className="data-[state=active]:bg-terminal-green data-[state=active]:text-terminal-bg flex-shrink-0 text-xs sm:text-sm"
               >
                 <FileCode2 className="w-4 h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Templates</span>
-                <span className="sm:hidden">Templates</span>
+                <span className="hidden sm:inline">Email Tmpls</span>
+                <span className="sm:hidden">Email Tmpls</span>
               </TabsTrigger>
             </TabsList>
 
