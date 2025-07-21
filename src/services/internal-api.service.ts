@@ -54,6 +54,54 @@ export interface EmailInterestData {
   relatedInitiativesConsent: boolean;
 }
 
+export interface DashboardData {
+  user: any;
+  agentProfile: any | null;
+  personalStory: any | null;
+  onboardingComplete: boolean;
+  agentStats: AgentStats;
+}
+
+export interface AgentStats {
+  totalMatches: number;
+  completedMatches: number;
+  totalConversations: number;
+  userConversations: number;
+  lastMatchDate: string | null;
+}
+
+export interface ConversationData {
+  id: string;
+  user_a_id: string;
+  user_b_id: string;
+  conversation_summary: string | null;
+  quality_score: number | null;
+  actual_outcome: string | null;
+  created_at: string;
+  match_type?: string;
+  outcome?: string;
+  agent_a?: {
+    id: string;
+    handle: string;
+    agent_profiles: { agent_name: string }[];
+  };
+  agent_b?: {
+    id: string;
+    handle: string;
+    agent_profiles: { agent_name: string }[];
+  };
+  user_a: {
+    id: string;
+    handle: string;
+    agent_profiles: { agent_name: string }[];
+  };
+  user_b: {
+    id: string;
+    handle: string;
+    agent_profiles: { agent_name: string }[];
+  };
+}
+
 class InternalAPIService {
   private async callInternalAPI<T = any>(
     action: string,
@@ -129,6 +177,33 @@ class InternalAPIService {
   // Email Interest Methods
   async submitEmailInterest(params: EmailInterestData): Promise<{ success: boolean; message: string }> {
     return this.callInternalAPI("submitEmailInterest", params);
+  }
+
+  // Dashboard Methods
+  async getDashboardData(): Promise<DashboardData> {
+    return this.callInternalAPI("getDashboardData");
+  }
+
+  // Agent Operations
+  async updateAgentName(agentProfileId: string, newName: string): Promise<{ success: boolean }> {
+    return this.callInternalAPI("updateAgentName", { agentProfileId, newName });
+  }
+
+  // User Utilities
+  async getUserInternalId(authUserId: string): Promise<string> {
+    return this.callInternalAPI("getUserInternalId", { authUserId });
+  }
+
+  // Networking Data Methods
+  async getNetworkingStats(userId: string): Promise<AgentStats> {
+    return this.callInternalAPI("getNetworkingStats", { userId });
+  }
+
+  async getUserConversations(
+    userId: string, 
+    options?: { offset?: number; limit?: number }
+  ): Promise<ConversationData[]> {
+    return this.callInternalAPI("getUserConversations", { userId, ...options });
   }
 }
 

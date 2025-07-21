@@ -1,7 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { internalAPIService } from "@/services/internal-api.service";
 import { ParticleBackground } from "@/components/ParticleBackground";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +16,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { useNetworkingData } from "@/hooks/useNetworkingData";
 import {
   Bot,
   Calendar,
@@ -36,9 +35,17 @@ import { MorningReportView } from "@/components/dashboard/MorningReportView";
 const NetworkingDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { stats, loading, error, refetch } = useNetworkingData();
   const [userInternalId, setUserInternalId] = useState<string | null>(null);
   const [showAllConversations, setShowAllConversations] = useState(false);
+  const [stats, setStats] = useState({
+    totalCycles: 0,
+    completedCycles: 0,
+    totalConversations: 0,
+    userConversations: 0,
+    lastCycleDate: null as string | null,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -50,48 +57,57 @@ const NetworkingDashboard = () => {
     if (!user) return;
 
     try {
-      const { data: userData } = await supabase
-        .from("users")
-        .select("id")
-        .eq("auth_user_id", user.id)
-        .single();
-
-      if (userData) {
-        setUserInternalId(userData.id);
-      }
+      const internalId = await internalAPIService.getUserInternalId(user.id);
+      setUserInternalId(internalId);
+      // Fetch stats once we have the internal ID
+      await fetchNetworkingStats(internalId);
+      await fetchConversations(0, 10);
     } catch (err) {
       console.error("Error fetching user internal ID:", err);
+      setStatsError("Failed to load user data");
+      setStatsLoading(false);
+    }
+  };
+
+  const fetchNetworkingStats = async (userId?: string) => {
+    const targetUserId = userId || userInternalId;
+    if (!targetUserId) return;
+
+    setStatsLoading(true);
+    setStatsError(null);
+
+    try {
+      const networkingStats = await internalAPIService.getNetworkingStats(
+        targetUserId
+      );
+      setStats({
+        totalCycles: 0, // No longer available - mock or remove
+        completedCycles: 0, // No longer available - mock or remove
+        totalConversations: networkingStats.totalConversations,
+        userConversations: networkingStats.userConversations,
+        lastCycleDate: networkingStats.lastMatchDate,
+      });
+    } catch (error) {
+      console.error("Error fetching networking stats:", error);
+      setStatsError("Failed to load networking statistics");
+    } finally {
+      setStatsLoading(false);
     }
   };
 
   const fetchConversations = async (offset: number, limit: number) => {
+    console.log("fetchConversations", userInternalId);
     if (!userInternalId) return [];
 
-    const { data, error } = await supabase
-      .from("conversation_logs")
-      .select(
-        `
-        *,
-        agent_a:users!conversation_logs_agent_a_user_id_fkey(
-          id,
-          handle,
-          agent_profiles(agent_name)
-        ),
-        agent_b:users!conversation_logs_agent_b_user_id_fkey(
-          id,
-          handle,
-          agent_profiles(agent_name)
-        )
-      `
-      )
-      .or(
-        `agent_a_user_id.eq.${userInternalId},agent_b_user_id.eq.${userInternalId}`
-      )
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (error) throw error;
-    return data || [];
+    try {
+      return await internalAPIService.getUserConversations(userInternalId, {
+        offset,
+        limit,
+      });
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+      throw error;
+    }
   };
 
   const {
@@ -148,7 +164,7 @@ const NetworkingDashboard = () => {
     }).format(date);
   };
 
-  if (loading || loadingConversations) {
+  if (statsLoading || loadingConversations) {
     return (
       <div className="min-h-screen bg-terminal-bg relative overflow-hidden">
         <ParticleBackground />
@@ -408,7 +424,7 @@ const NetworkingDashboard = () => {
                     </div>
                   )}
                 </CardContent>
-                <CardFooter>
+                {/* <CardFooter>
                   <Button
                     onClick={() => navigate("/proving-ground-2")}
                     className="w-full border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg"
@@ -417,7 +433,7 @@ const NetworkingDashboard = () => {
                     <Activity className="h-4 w-4 mr-2" />
                     View Live Demonstration
                   </Button>
-                </CardFooter>
+                </CardFooter> */}
               </Card>
             </div>
 

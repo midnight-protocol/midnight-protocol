@@ -1,100 +1,60 @@
-
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { ParticleBackground } from '@/components/ParticleBackground';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { FullStoryModal } from '@/components/FullStoryModal';
-import { AgentNameModal } from '@/components/AgentNameModal';
-import { SimpleShareButton } from '@/components/SimpleShareButton';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { AgentStatusCard } from '@/components/dashboard/AgentStatusCard';
-import { PersonalStoryCard } from '@/components/dashboard/PersonalStoryCard';
-import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard';
-import { DashboardLoadingSkeleton } from '@/components/skeletons/DashboardSkeletons';
-import { FadeIn } from '@/components/ui/fade-in';
-import { internalAPIService } from '@/services/internal-api.service';
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { ParticleBackground } from "@/components/ParticleBackground";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { FullStoryModal } from "@/components/FullStoryModal";
+import { AgentNameModal } from "@/components/AgentNameModal";
+import { SimpleShareButton } from "@/components/SimpleShareButton";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { AgentStatusCard } from "@/components/dashboard/AgentStatusCard";
+import { PersonalStoryCard } from "@/components/dashboard/PersonalStoryCard";
+import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
+import { DashboardLoadingSkeleton } from "@/components/skeletons/DashboardSkeletons";
+import { FadeIn } from "@/components/ui/fade-in";
+import { internalAPIService } from "@/services/internal-api.service";
 
 const Dashboard = () => {
   const [userRecord, setUserRecord] = useState<any>(null);
   const [agentProfile, setAgentProfile] = useState<any>(null);
   const [story, setStory] = useState<any>(null);
-  const [storySummary, setStorySummary] = useState<string>('');
+  const [storySummary, setStorySummary] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const [summaryLoading, setSummaryLoading] = useState(false);
   const [showFullStory, setShowFullStory] = useState(false);
   const [showAgentNameModal, setShowAgentNameModal] = useState(false);
-  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
+  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(
+    null
+  );
   const { user, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const fetchUserData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    
-    console.log('Fetching data for user:', user.id);
 
     try {
-      // Fetch user record
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('auth_user_id', user.id)
-        .single();
+      // Single API call to get all dashboard data
+      const dashboardData = await internalAPIService.getDashboardData();
 
-      if (userError) {
-        console.error('Error fetching user:', userError);
-        toast.error(`Database error: ${userError.message}`);
-        return;
-      }
+      setUserRecord(dashboardData.user);
+      setAgentProfile(dashboardData.agentProfile);
+      setStory(dashboardData.personalStory);
+      setOnboardingComplete(dashboardData.onboardingComplete);
 
-      if (userData) {
-        setUserRecord(userData);
-
-        // Fetch agent profile
-        const { data: agentData } = await supabase
-          .from('agent_profiles')
-          .select('*')
-          .eq('user_id', userData.id)
-          .single();
-
-        setAgentProfile(agentData);
-
-        // Check if onboarding conversation is completed
-        const { data: onboardingData } = await supabase
-          .from('onboarding_conversations')
-          .select('status')
-          .eq('user_id', userData.id)
-          .eq('status', 'completed')
-          .maybeSingle();
-
-        setOnboardingComplete(!!onboardingData);
-
-        // Fetch personal story - use maybeSingle to avoid 406 error
-        const { data: storyData } = await supabase
-          .from('personal_stories')
-          .select('*')
-          .eq('user_id', userData.id)
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        setStory(storyData);
-
-        // Use stored summary if available, otherwise generate one
-        if (storyData) {
-          if (storyData.summary) {
-            setStorySummary(storyData.summary);
-          } else {
-            generateAndStoreStorySummary(storyData);
-          }
-        }
+      // Use story summary if available, otherwise truncated narrative
+      if (dashboardData.personalStory?.summary) {
+        setStorySummary(dashboardData.personalStory.summary);
+      } else if (dashboardData.personalStory?.narrative) {
+        setStorySummary(
+          dashboardData.personalStory.narrative.substring(0, 150) + "..."
+        );
+      } else {
+        setStorySummary("Your personal story is being processed...");
       }
     } catch (error) {
-      console.error('Error fetching user data:', error);
-      toast.error('Failed to load dashboard data. Please refresh the page.');
+      console.error("Error fetching dashboard data:", error);
+      toast.error("Failed to load dashboard data. Please refresh the page.");
     } finally {
       setLoading(false);
     }
@@ -106,79 +66,25 @@ const Dashboard = () => {
     }
   }, [user, fetchUserData]);
 
-  // Test the internal API getUserData function
-  useEffect(() => {
-    const testInternalAPI = async () => {
-      if (user) {
-        try {
-          console.log('Testing internal API getUserData...');
-          const userData = await internalAPIService.getUserData();
-          if (userData) {
-            console.log('Internal API getUserData result:', userData);
-          } else {
-            console.log('Internal API getUserData: No user record found in database');
-          }
-        } catch (error) {
-          console.error('Internal API test failed:', error);
-        }
-      }
-    };
-
-    testInternalAPI();
-  }, [user]);
-
-  const generateAndStoreStorySummary = async (storyData: any) => {
-    setSummaryLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-story-summary', {
-        body: { story: storyData }
-      });
-
-      if (error) throw error;
-
-      if (data?.summary) {
-        // Store the summary in the database
-        const { error: updateError } = await supabase
-          .from('personal_stories')
-          .update({ summary: data.summary })
-          .eq('id', storyData.id);
-
-        if (updateError) {
-          console.warn('Failed to store summary in database:', updateError);
-          // Continue anyway - summary is generated but not persisted
-        }
-
-        setStorySummary(data.summary);
-      }
-    } catch (error) {
-      console.error('Failed to generate story summary:', error);
-      // Fallback to truncated narrative
-      const fallbackSummary = storyData.narrative?.substring(0, 150) + '...' || 'Your personal story is being processed...';
-      setStorySummary(fallbackSummary);
-    } finally {
-      setSummaryLoading(false);
-    }
-  };
-
   const handleSignOut = useCallback(async () => {
     try {
       await signOut();
-      toast.success('Logged out successfully');
-      navigate('/');
+      toast.success("Logged out successfully");
+      navigate("/");
     } catch (error) {
-      toast.error('Error logging out');
+      toast.error("Error logging out");
       // Force navigation even on error
-      navigate('/');
+      navigate("/");
     }
   }, [signOut, navigate]);
 
   const handleRefreshData = useCallback(() => {
     fetchUserData();
-    toast.success('Data refreshed');
+    toast.success("Data refreshed");
   }, [fetchUserData]);
 
   const handleAgentNameUpdated = useCallback((newName: string) => {
-    setAgentProfile(prev => ({ ...prev, agent_name: newName }));
+    setAgentProfile((prev) => ({ ...prev, agent_name: newName }));
   }, []);
 
   // Show loading while auth is loading
@@ -188,7 +94,7 @@ const Dashboard = () => {
 
   // If not authenticated, redirect
   if (!user) {
-    navigate('/auth');
+    navigate("/auth");
     return null;
   }
 
@@ -208,8 +114,8 @@ const Dashboard = () => {
           <p className="text-terminal-text mb-8">
             You need to complete the onboarding process to activate your agent.
           </p>
-          <Button 
-            onClick={() => navigate('/onboarding')}
+          <Button
+            onClick={() => navigate("/onboarding")}
             className="bg-terminal-green text-terminal-bg hover:bg-terminal-cyan transition-colors font-mono"
           >
             CONTINUE ONBOARDING
@@ -222,22 +128,24 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-terminal-bg relative overflow-hidden">
       <ParticleBackground />
-      
+
       <div className="relative z-10">
         <DashboardHeader
-          userHandle={userRecord?.handle || ''}
-          agentName={agentProfile?.agent_name || ''}
+          userHandle={userRecord?.handle || ""}
+          agentName={agentProfile?.agent_name || ""}
           onRefresh={handleRefreshData}
           onSignOut={handleSignOut}
           onAgentNameClick={() => setShowAgentNameModal(true)}
-        />
+        >
+          <SimpleShareButton />
+        </DashboardHeader>
 
         {/* Main Content */}
-        <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-4 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6">
+        <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-4 md:space-y-0 md:grid md:grid-cols-1 lg:grid-cols-2 md:gap-6">
           <FadeIn delay={0} className="md:col-span-1">
             <AgentStatusCard
-              userStatus={userRecord?.status || ''}
-              agentName={agentProfile?.agent_name || ''}
+              userStatus={userRecord?.status || ""}
+              agentName={agentProfile?.agent_name || ""}
               userId={userRecord?.id}
             />
           </FadeIn>
@@ -246,19 +154,15 @@ const Dashboard = () => {
             <PersonalStoryCard
               story={story}
               storySummary={storySummary}
-              summaryLoading={summaryLoading}
+              summaryLoading={false}
               onViewFullStory={() => setShowFullStory(true)}
             />
           </FadeIn>
 
-          <FadeIn delay={200} className="md:col-span-2 lg:col-span-1 flex items-start justify-center md:justify-end">
-            <SimpleShareButton />
-          </FadeIn>
-
-          <FadeIn delay={300} className="md:col-span-2 lg:col-span-2">
+          <FadeIn delay={200} className="md:col-span-1 lg:col-span-2">
             <RecentActivityCard
-              userStatus={userRecord?.status || ''}
-              agentName={agentProfile?.agent_name || ''}
+              userStatus={userRecord?.status || ""}
+              agentName={agentProfile?.agent_name || ""}
               userId={userRecord?.id}
               className=""
             />

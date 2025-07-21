@@ -8,8 +8,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bot } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { internalAPIService } from "@/services/internal-api.service";
 
 interface AgentNameModalProps {
   isOpen: boolean;
@@ -36,13 +36,7 @@ const AgentNameModalComponent: React.FC<AgentNameModalProps> = ({
 
     setIsUpdating(true);
     try {
-      const { error } = await supabase
-        .from("agent_profiles")
-        .update({ agent_name: newName.trim() })
-        .eq("id", agentProfileId);
-
-      if (error) throw error;
-
+      await internalAPIService.updateAgentName(agentProfileId, newName.trim());
       onNameUpdated(newName.trim());
       toast.success("Agent name updated successfully!");
       onClose();
@@ -51,7 +45,7 @@ const AgentNameModalComponent: React.FC<AgentNameModalProps> = ({
     } finally {
       setIsUpdating(false);
     }
-  }, [newName, currentName, agentProfileId, onNameUpdated, onClose, userId]);
+  }, [newName, currentName, agentProfileId, onNameUpdated, onClose]);
 
   const handleKeyPress = useCallback(
     (e: React.KeyboardEvent) => {

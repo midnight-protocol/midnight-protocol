@@ -14,7 +14,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { adminAPIService } from "@/services/admin-api.service";
 import type {
   HealthMetric,
@@ -111,20 +110,6 @@ export const SystemHealthAlerts = () => {
     if (!editingThresholds) return;
 
     try {
-      // First check if we're actually an admin
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      console.log("Current user:", user?.email);
-
-      const { data: userData, error: userError } = await supabase
-        .from("users")
-        .select("role")
-        .eq("auth_user_id", user?.id)
-        .single();
-
-      console.log("User role:", userData?.role, "Error:", userError);
-
       // Update each threshold
       await Promise.all([
         adminAPIService.updateAlertThreshold(

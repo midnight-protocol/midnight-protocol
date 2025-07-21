@@ -6,7 +6,14 @@ import { InternalRequest, InternalResponse } from "../_shared/types.ts";
 
 // Import actions
 import { verifyUser } from "../_shared/auth.ts";
-import { getUserData } from "./actions/users.ts";
+import { 
+  getUserData,
+  getDashboardData,
+  updateAgentName,
+  getUserInternalId,
+  getNetworkingStats,
+  getUserConversations
+} from "./actions/users.ts";
 import { 
   initializeOnboardingChat, 
   sendOnboardingMessage, 
@@ -21,6 +28,11 @@ import { submitEmailInterest } from "./actions/email-interest.ts";
 const actions: Record<string, Function> = {
   // User actions
   getUserData,
+  getDashboardData,
+  updateAgentName,
+  getUserInternalId,
+  getNetworkingStats,
+  getUserConversations,
   
   // Onboarding actions
   initializeOnboardingChat,

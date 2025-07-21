@@ -4,8 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Calendar,
-  MessageCircle,
   Sparkles,
   TrendingUp,
   Users,
@@ -23,12 +21,14 @@ import {
   OmniscientMorningReport,
   MatchNotification,
 } from "@/services/omniscient.service";
+import { internalAPIService } from "@/services/internal-api.service";
 
 export function MorningReportView() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [reports, setReports] = useState<OmniscientMorningReport[]>([]);
-  const [selectedReport, setSelectedReport] = useState<OmniscientMorningReport | null>(null);
+  const [selectedReport, setSelectedReport] =
+    useState<OmniscientMorningReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [sendingIntro, setSendingIntro] = useState<string | null>(null);
 
@@ -40,15 +40,9 @@ export function MorningReportView() {
 
   const fetchReports = async () => {
     try {
-      // Get user ID from users table
-      const { data: userData } = await omniscientService.getMatches({
-        userId: user!.id,
-        limit: 1,
-      });
-
-      if (!userData) return;
-
+      const internalId = await internalAPIService.getUserInternalId(user.id);
       const reports = await omniscientService.getMorningReports({
+        userId: internalId,
         limit: 30,
       });
 
@@ -129,7 +123,8 @@ export function MorningReportView() {
         <Sun className="w-12 h-12 text-terminal-yellow mb-4" />
         <h3 className="text-xl font-semibold mb-2">No Morning Reports Yet</h3>
         <p className="text-terminal-text-muted">
-          Your omniscient system will start generating reports when matches are found.
+          Your omniscient system will start generating reports when matches are
+          found.
         </p>
       </div>
     );
@@ -184,7 +179,8 @@ export function MorningReportView() {
                 </span>
                 <span className="flex items-center gap-1">
                   <TrendingUp className="w-4 h-4" />
-                  {selectedReport.total_opportunity_score.toFixed(1)} total opportunity score
+                  {selectedReport.total_opportunity_score.toFixed(1)} total
+                  opportunity score
                 </span>
                 {selectedReport.email_sent && (
                   <span className="flex items-center gap-1">
@@ -212,7 +208,9 @@ export function MorningReportView() {
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-terminal-cyan">
-                    {selectedReport.match_summaries.average_opportunity_score.toFixed(1)}
+                    {selectedReport.match_summaries.average_opportunity_score.toFixed(
+                      1
+                    )}
                   </div>
                   <div className="text-xs text-terminal-text-muted">
                     Avg Opportunity
@@ -220,7 +218,9 @@ export function MorningReportView() {
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-terminal-yellow">
-                    {selectedReport.match_summaries.highest_scoring_match.toFixed(1)}
+                    {selectedReport.match_summaries.highest_scoring_match.toFixed(
+                      1
+                    )}
                   </div>
                   <div className="text-xs text-terminal-text-muted">
                     Top Score
@@ -228,7 +228,10 @@ export function MorningReportView() {
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-terminal-purple">
-                    {Object.keys(selectedReport.match_summaries.top_outcomes).length}
+                    {
+                      Object.keys(selectedReport.match_summaries.top_outcomes)
+                        .length
+                    }
                   </div>
                   <div className="text-xs text-terminal-text-muted">
                     Outcome Types
@@ -245,43 +248,67 @@ export function MorningReportView() {
                   Agent Insights
                 </h3>
                 <div className="space-y-4">
-                  {selectedReport.agent_insights.patterns_observed.length > 0 && (
+                  {selectedReport.agent_insights.patterns_observed.length >
+                    0 && (
                     <div>
                       <h4 className="text-sm font-semibold text-terminal-purple mb-2">
                         Patterns Observed
                       </h4>
-                      {selectedReport.agent_insights.patterns_observed.map((pattern, idx) => (
-                        <div key={idx} className="flex items-start gap-2 text-sm mb-1">
-                          <ChevronRight className="w-4 h-4 text-terminal-purple mt-0.5 flex-shrink-0" />
-                          <span className="text-terminal-text-muted">{pattern}</span>
-                        </div>
-                      ))}
+                      {selectedReport.agent_insights.patterns_observed.map(
+                        (pattern, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-start gap-2 text-sm mb-1"
+                          >
+                            <ChevronRight className="w-4 h-4 text-terminal-purple mt-0.5 flex-shrink-0" />
+                            <span className="text-terminal-text-muted">
+                              {pattern}
+                            </span>
+                          </div>
+                        )
+                      )}
                     </div>
                   )}
-                  {selectedReport.agent_insights.top_opportunities.length > 0 && (
+                  {selectedReport.agent_insights.top_opportunities.length >
+                    0 && (
                     <div>
                       <h4 className="text-sm font-semibold text-terminal-cyan mb-2">
                         Top Opportunities
                       </h4>
-                      {selectedReport.agent_insights.top_opportunities.map((opportunity, idx) => (
-                        <div key={idx} className="flex items-start gap-2 text-sm mb-1">
-                          <ChevronRight className="w-4 h-4 text-terminal-cyan mt-0.5 flex-shrink-0" />
-                          <span className="text-terminal-text-muted">{opportunity}</span>
-                        </div>
-                      ))}
+                      {selectedReport.agent_insights.top_opportunities.map(
+                        (opportunity, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-start gap-2 text-sm mb-1"
+                          >
+                            <ChevronRight className="w-4 h-4 text-terminal-cyan mt-0.5 flex-shrink-0" />
+                            <span className="text-terminal-text-muted">
+                              {opportunity}
+                            </span>
+                          </div>
+                        )
+                      )}
                     </div>
                   )}
-                  {selectedReport.agent_insights.recommended_actions.length > 0 && (
+                  {selectedReport.agent_insights.recommended_actions.length >
+                    0 && (
                     <div>
                       <h4 className="text-sm font-semibold text-terminal-green mb-2">
                         Recommended Actions
                       </h4>
-                      {selectedReport.agent_insights.recommended_actions.map((action, idx) => (
-                        <div key={idx} className="flex items-start gap-2 text-sm mb-1">
-                          <ChevronRight className="w-4 h-4 text-terminal-green mt-0.5 flex-shrink-0" />
-                          <span className="text-terminal-text-muted">{action}</span>
-                        </div>
-                      ))}
+                      {selectedReport.agent_insights.recommended_actions.map(
+                        (action, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-start gap-2 text-sm mb-1"
+                          >
+                            <ChevronRight className="w-4 h-4 text-terminal-green mt-0.5 flex-shrink-0" />
+                            <span className="text-terminal-text-muted">
+                              {action}
+                            </span>
+                          </div>
+                        )
+                      )}
                     </div>
                   )}
                 </div>
@@ -311,14 +338,20 @@ export function MorningReportView() {
                               {notification.other_user.handle}
                             </h4>
                             <p className="text-sm text-terminal-text-muted">
-                              Score: {(notification.notification_score * 100).toFixed(0)}%
+                              Score:{" "}
+                              {(notification.notification_score * 100).toFixed(
+                                0
+                              )}
+                              %
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           {getMatchTypeBadge(notification.predicted_outcome)}
                           <Button
-                            onClick={() => handleIntroductionRequest(notification)}
+                            onClick={() =>
+                              handleIntroductionRequest(notification)
+                            }
                             disabled={sendingIntro === notification.match_id}
                             size="sm"
                             className="bg-terminal-green hover:bg-terminal-cyan"
