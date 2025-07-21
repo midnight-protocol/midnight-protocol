@@ -9,6 +9,8 @@ interface DashboardHeaderProps {
   onRefresh: () => void;
   onSignOut: () => void;
   onAgentNameClick: () => void;
+  isAdmin?: boolean;
+  onAdminClick?: () => void;
   children?: React.ReactNode;
 }
 
@@ -18,6 +20,8 @@ const DashboardHeaderComponent = ({
   onRefresh, 
   onSignOut, 
   onAgentNameClick,
+  isAdmin,
+  onAdminClick,
   children
 }: DashboardHeaderProps) => {
   return (
@@ -38,6 +42,16 @@ const DashboardHeaderComponent = ({
           </div>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
+          {isAdmin && onAdminClick && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={onAdminClick}
+              className="border-terminal-cyan text-terminal-cyan hover:bg-terminal-yellow hover:text-terminal-bg font-mono"
+            >
+              ADMIN
+            </Button>
+          )}
           {children}
           <Button 
             variant="outline" 

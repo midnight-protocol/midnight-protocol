@@ -1,5 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabase } from "@/integrations/supabase/client";
+import {
+  FunctionsFetchError,
+  FunctionsRelayError,
+  FunctionsHttpError,
+} from "@supabase/functions-js";
 
 // Types
 export interface OmniscientMatch {
@@ -227,13 +232,21 @@ class OmniscientService {
       }
     );
 
+    if (error instanceof FunctionsHttpError) {
+      const errorMessage = await error.context.json();
+      throw new Error(errorMessage.error);
+    } else if (error instanceof FunctionsRelayError) {
+      throw new Error(error.message);
+    } else if (error instanceof FunctionsFetchError) {
+      throw new Error(error.message);
+    }
+
     if (error) {
-      console.error(`Omniscient function error (${action}):`, error);
-      throw new Error(`Failed to execute ${action}: ${error.message}`);
+      throw new Error(error.message || "Omniscient API error");
     }
 
     if (!data.success) {
-      throw new Error(data.error || `Unknown error in ${action}`);
+      throw new Error(data.error || "Unknown error");
     }
 
     return data;
@@ -288,7 +301,9 @@ class OmniscientService {
   async getConversation(
     conversationId: string
   ): Promise<OmniscientConversation> {
-    const result = await this.callFunction("getConversation", { conversationId });
+    const result = await this.callFunction("getConversation", {
+      conversationId,
+    });
     return result.data;
   }
 
@@ -353,11 +368,13 @@ class OmniscientService {
   }
 
   // Morning Reports Operations
-  async generateMorningReports(options: {
-    date?: string;
-    forceRegenerate?: boolean;
-    userId?: string;
-  } = {}): Promise<{
+  async generateMorningReports(
+    options: {
+      date?: string;
+      forceRegenerate?: boolean;
+      userId?: string;
+    } = {}
+  ): Promise<{
     summary: {
       date: string;
       totalMatches: number;
@@ -373,14 +390,16 @@ class OmniscientService {
     return this.callFunction("generateMorningReports", options, true);
   }
 
-  async sendMorningReportEmails(options: {
-    date?: string;
-    userIds?: string[];
-    templateOverride?: string;
-    forceResend?: boolean;
-    dryRun?: boolean;
-    emailOverride?: string;
-  } = {}): Promise<{
+  async sendMorningReportEmails(
+    options: {
+      date?: string;
+      userIds?: string[];
+      templateOverride?: string;
+      forceResend?: boolean;
+      dryRun?: boolean;
+      emailOverride?: string;
+    } = {}
+  ): Promise<{
     summary: {
       date: string;
       totalReports: number;
@@ -424,8 +443,14 @@ class OmniscientService {
     return result.data || [];
   }
 
-  async getUserMorningReport(userId: string, date?: string): Promise<OmniscientMorningReport | null> {
-    const result = await this.callFunction("getUserMorningReport", { userId, date });
+  async getUserMorningReport(
+    userId: string,
+    date?: string
+  ): Promise<OmniscientMorningReport | null> {
+    const result = await this.callFunction("getUserMorningReport", {
+      userId,
+      date,
+    });
     return result.data;
   }
 
@@ -436,7 +461,9 @@ class OmniscientService {
     emailsPending: number;
     successRate: number;
   }> {
-    const result = await this.callFunction("getMorningReportEmailStatus", { date });
+    const result = await this.callFunction("getMorningReportEmailStatus", {
+      date,
+    });
     return result.data;
   }
 

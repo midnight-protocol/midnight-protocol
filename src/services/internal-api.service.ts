@@ -1,4 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  FunctionsHttpError,
+  FunctionsRelayError,
+  FunctionsFetchError,
+} from "@supabase/functions-js";
 
 export interface InternalAPIResponse<T = any> {
   success: boolean;
@@ -13,8 +18,8 @@ export interface UserData {
   email: string;
   full_name: string | null;
   username: string | null;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  role: 'user' | 'admin';
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  role: "user" | "admin";
   timezone: string | null;
   created_at: string;
   updated_at: string;
@@ -111,6 +116,15 @@ class InternalAPIService {
       body: { action, params },
     });
 
+    if (error instanceof FunctionsHttpError) {
+      const errorMessage = await error.context.json();
+      throw new Error(errorMessage.error);
+    } else if (error instanceof FunctionsRelayError) {
+      throw new Error(error.message);
+    } else if (error instanceof FunctionsFetchError) {
+      throw new Error(error.message);
+    }
+
     if (error) {
       throw new Error(error.message || "Internal API error");
     }
@@ -175,7 +189,9 @@ class InternalAPIService {
   }
 
   // Email Interest Methods
-  async submitEmailInterest(params: EmailInterestData): Promise<{ success: boolean; message: string }> {
+  async submitEmailInterest(
+    params: EmailInterestData
+  ): Promise<{ success: boolean; message: string }> {
     return this.callInternalAPI("submitEmailInterest", params);
   }
 
@@ -185,7 +201,10 @@ class InternalAPIService {
   }
 
   // Agent Operations
-  async updateAgentName(agentProfileId: string, newName: string): Promise<{ success: boolean }> {
+  async updateAgentName(
+    agentProfileId: string,
+    newName: string
+  ): Promise<{ success: boolean }> {
     return this.callInternalAPI("updateAgentName", { agentProfileId, newName });
   }
 
@@ -200,7 +219,7 @@ class InternalAPIService {
   }
 
   async getUserConversations(
-    userId: string, 
+    userId: string,
     options?: { offset?: number; limit?: number }
   ): Promise<ConversationData[]> {
     return this.callInternalAPI("getUserConversations", { userId, ...options });
