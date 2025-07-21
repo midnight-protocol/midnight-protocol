@@ -1,4 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  FunctionsFetchError,
+  FunctionsRelayError,
+  FunctionsHttpError,
+} from "@supabase/functions-js";
 
 export interface AdminAPIResponse<T = any> {
   success: boolean;
@@ -248,6 +253,15 @@ class AdminAPIService {
       body: { action, params },
     });
 
+    if (error instanceof FunctionsHttpError) {
+      const errorMessage = await error.context.json();
+      throw new Error(errorMessage.error);
+    } else if (error instanceof FunctionsRelayError) {
+      throw new Error(error.message);
+    } else if (error instanceof FunctionsFetchError) {
+      throw new Error(error.message);
+    }
+
     if (error) {
       throw new Error(error.message || "Admin API error");
     }
@@ -400,21 +414,23 @@ class AdminAPIService {
   }
 
   // Test User Management
-  async createTestUsers(params: {
-    count?: number;
-    generation_mode?: 'random' | 'guided';
-    input_data?: string;
-  } = {}): Promise<{
+  async createTestUsers(
+    params: {
+      count?: number;
+      generation_mode?: "random" | "guided";
+      input_data?: string;
+    } = {}
+  ): Promise<{
     created: number;
     users: any[];
     generation_mode: string;
     profiles_generated: number;
   }> {
-    const { count = 10, generation_mode = 'random', input_data } = params;
-    return this.callAdminAPI("createTestUsers", { 
-      count, 
-      generation_mode, 
-      input_data 
+    const { count = 10, generation_mode = "random", input_data } = params;
+    return this.callAdminAPI("createTestUsers", {
+      count,
+      generation_mode,
+      input_data,
     });
   }
 

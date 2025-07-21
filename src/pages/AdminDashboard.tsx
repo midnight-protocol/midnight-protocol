@@ -123,6 +123,14 @@ const AdminDashboard = () => {
               </div>
               <div className="flex gap-2">
                 <Button
+                  onClick={() => navigate("/dashboard")}
+                  variant="outline"
+                  className="border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg"
+                  size="sm"
+                >
+                  User Dashboard
+                </Button>
+                <Button
                   onClick={() => navigate("/admin/omniscient")}
                   variant="outline"
                   className="border-terminal-purple text-terminal-purple hover:bg-terminal-purple hover:text-terminal-bg"

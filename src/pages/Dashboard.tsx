@@ -26,7 +26,7 @@ const Dashboard = () => {
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(
     null
   );
-  const { user, signOut, loading: authLoading } = useAuth();
+  const { user, signOut, loading: authLoading, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const fetchUserData = useCallback(async () => {
@@ -136,6 +136,8 @@ const Dashboard = () => {
           onRefresh={handleRefreshData}
           onSignOut={handleSignOut}
           onAgentNameClick={() => setShowAgentNameModal(true)}
+          isAdmin={isAdmin}
+          onAdminClick={() => navigate('/admin')}
         >
           <SimpleShareButton />
         </DashboardHeader>

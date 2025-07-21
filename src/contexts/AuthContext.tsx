@@ -52,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   /* ───────── Check admin role (await OK here) ───────── */
   const checkAdminStatus = useCallback(async (authUserId: string) => {
     try {
+      console.log("[AuthContext] checkAdminStatus", authUserId);
       const { data, error } = await supabase // normal DB query
         .from("users")
         .select("role")
@@ -65,6 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsAdmin(false);
         return;
       }
+      console.log("[AuthContext] checkAdminStatus data", data);
       setIsAdmin(data?.role === "admin");
     } catch (err) {
       if (err instanceof Error && !err.message.includes("Failed to fetch"))
@@ -73,12 +75,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       setLoading(false);
       setInitialized(true);
+      console.log("[AuthContext] checkAdminStatus finally", isAdmin);
     }
   }, []);
 
   /* ───────── Initialise session once on mount ───────── */
   useEffect(() => {
     const init = async () => {
+      console.log("[AuthContext] init start");
       // getSession is safe to await outside the auth listener
       const {
         data: { session: initial },
@@ -86,6 +90,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       setSession(initial);
       setUser(initial?.user ?? null);
+      console.log("[AuthContext] init complete", initial);
+      if (!initial?.user) {
+        setLoading(false);
+        setInitialized(true);
+      }
     };
     init();
 
@@ -97,6 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      console.log("[AuthContext] auth listener", _event, newSession);
       // synchronous updates only
       setSession(newSession);
       setUser(newSession?.user ?? null);
