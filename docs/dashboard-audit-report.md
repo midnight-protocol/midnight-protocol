@@ -43,14 +43,14 @@ const { data: storyData } = await supabase
   .maybeSingle();
 ```
 
-#### ❌ Direct Edge Function Call (Lines 133-161)
+#### ❌ Direct Edge Function Call (Lines 133-161) - REMOVE ENTIRELY
 ```typescript
-// DEPRECATED: Direct function call that should go through internal-api
+// TO BE REMOVED: This functionality is no longer needed
 const { data, error } = await supabase.functions.invoke('generate-story-summary', {
   body: { story: storyData }
 });
 
-// DEPRECATED: Direct database update
+// TO BE REMOVED: Direct database update
 const { error: updateError } = await supabase
   .from('personal_stories')
   .update({ summary: data.summary })
@@ -66,8 +66,8 @@ const userData = await internalAPIService.getUserData();
 ### Child Components Analysis
 
 #### AgentStatusCard.tsx ❌ (Lines 27-51)
-- **Direct Supabase Calls:** `agent_conversations` table queries
-- **Tables Used:** `agent_conversations`
+- **Direct Supabase Calls:** `agent_conversations` table queries (DEPRECATED TABLE)
+- **Tables Used:** `agent_conversations` → **MIGRATE TO:** `omniscient_matches`
 - **Impact:** Statistics fetching for conversation counts and weekly connections
 
 #### DashboardHeader.tsx ✅ 
@@ -95,19 +95,21 @@ const userData = await internalAPIService.getUserData();
 ## Database Tables Assessment
 
 ### Current Tables in Use
-- `users` - Core user records
-- `agent_profiles` - Agent configuration data
-- `onboarding_conversations` - Onboarding completion status
-- `personal_stories` - User narrative data
-- `agent_conversations` - Agent interaction logs
+- `users` - Core user records ✅
+- `agent_profiles` - Agent configuration data ✅
+- `onboarding_conversations` - Onboarding completion status ✅
+- `personal_stories` - User narrative data ✅
+- `agent_conversations` - Agent interaction logs ❌ **DEPRECATED**
+- `omniscient_matches` - New table for agent matches and conversations ✅
 
 ### Migration Status
-All tables appear to be current based on recent migration files. No obviously deprecated tables identified.
+**DEPRECATED TABLES IDENTIFIED:**
+- `agent_conversations` → Replace with `omniscient_matches` for conversation statistics
 
 ## Edge Functions Assessment
 
 ### Current Direct Function Calls
-- `generate-story-summary` - Story summarization (Dashboard.tsx:133)
+- `generate-story-summary` - Story summarization (Dashboard.tsx:133) ❌ **TO BE REMOVED**
 
 ### Available Internal API Functions
 Based on `supabase/functions/internal-api/actions/`:
@@ -116,9 +118,9 @@ Based on `supabase/functions/internal-api/actions/`:
 - `email-interest.ts` - Email interest management
 
 ### Missing Internal API Coverage
-- Story summary generation
+- ~~Story summary generation~~ **REMOVED - No longer needed**
 - Agent profile updates
-- Agent conversation statistics
+- Agent conversation statistics (migrate from `agent_conversations` to `omniscient_matches`)
 - Activity feed data
 
 ## Migration Recommendations
@@ -127,7 +129,7 @@ Based on `supabase/functions/internal-api/actions/`:
 
 1. **Dashboard.tsx fetchUserData() method**
    - Replace all direct Supabase calls with `internalAPIService.getUserData()`
-   - Migrate story summary generation to internal API
+   - **REMOVE** story summary generation entirely (no longer needed)
    - Consolidate all user data fetching into single API call
 
 2. **AgentNameModal.tsx**
@@ -136,7 +138,8 @@ Based on `supabase/functions/internal-api/actions/`:
 
 3. **AgentStatusCard.tsx**
    - Create `internalAPIService.getAgentStats()` method
-   - Add corresponding action for conversation statistics
+   - **MIGRATE** from `agent_conversations` table to `omniscient_matches` table
+   - Add corresponding action for conversation statistics using new table
 
 ### Medium Priority (Incomplete Features)
 
@@ -154,10 +157,7 @@ async getUserDashboardData(): Promise<DashboardData>
 
 // Agent operations
 async updateAgentName(agentProfileId: string, newName: string): Promise<void>
-async getAgentStats(userId: string): Promise<AgentStats>
-
-// Story operations  
-async generateStorySummary(storyId: string): Promise<string>
+async getAgentStats(userId: string): Promise<AgentStats> // Uses omniscient_matches table
 
 // Activity operations
 async getUserActivity(userId: string, offset?: number, limit?: number): Promise<Activity[]>
@@ -171,9 +171,9 @@ async getUserActivity(userId: string, offset?: number, limit?: number): Promise<
 3. Update AgentNameModal to use internal API
 
 ### Phase 2: Feature Completion
-1. Implement agent statistics endpoint
+1. Implement agent statistics endpoint using `omniscient_matches` table
 2. Complete activity feed functionality
-3. Migrate story summary generation
+3. **REMOVE** story summary generation code from Dashboard
 
 ### Phase 3: Cleanup
 1. Remove all direct Supabase imports from Dashboard components
@@ -183,7 +183,8 @@ async getUserActivity(userId: string, offset?: number, limit?: number): Promise<
 ## Risk Assessment
 
 - **Low Risk:** Most changes are isolated to data fetching logic
-- **Medium Risk:** Story summary generation migration may need edge function refactoring
+- **Low Risk:** Story summary removal is straightforward (no migration needed)
+- **Medium Risk:** Table migration from `agent_conversations` to `omniscient_matches` may require schema understanding
 - **Breaking Change Risk:** None - all changes are internal implementation details
 
 ## Testing Requirements

@@ -4,27 +4,24 @@ export default async function getMorningReports(
   context: ActionContext
 ): Promise<ActionResponse> {
   const { supabase, params } = context;
-  const { 
-    userId, 
-    dateRange, 
-    limit = 50, 
-    offset = 0 
-  } = params;
+  const { userId, dateRange, limit = 50, offset = 0 } = params;
 
   console.log(`📊 Fetching morning reports with filters:`, {
     userId,
     dateRange,
     limit,
-    offset
+    offset,
   });
 
   // Build base query with user join
   let query = supabase
     .from("omniscient_morning_reports")
-    .select(`
+    .select(
+      `
       *,
       user:users!user_id(id, handle)
-    `)
+    `
+    )
     .order("report_date", { ascending: false });
 
   // Apply filters
@@ -50,6 +47,8 @@ export default async function getMorningReports(
     query = query.range(offset, offset + limit - 1);
   }
 
+  console.log("query", query);
+
   const { data: reports, error } = await query;
 
   if (error) {
@@ -57,7 +56,9 @@ export default async function getMorningReports(
     throw new Error(`Failed to fetch morning reports: ${error.message}`);
   }
 
-  console.log(`✅ Successfully fetched ${reports?.length || 0} morning reports`);
+  console.log(
+    `✅ Successfully fetched ${reports?.length || 0} morning reports`
+  );
 
   return {
     success: true,
@@ -68,12 +69,15 @@ export default async function getMorningReports(
         userId,
         dateRange,
         limit,
-        offset
+        offset,
       },
-      dateRange: reports?.length > 0 ? {
-        earliest: reports[reports.length - 1]?.report_date,
-        latest: reports[0]?.report_date
-      } : null
-    }
+      dateRange:
+        reports?.length > 0
+          ? {
+              earliest: reports[reports.length - 1]?.report_date,
+              latest: reports[0]?.report_date,
+            }
+          : null,
+    },
   };
 }

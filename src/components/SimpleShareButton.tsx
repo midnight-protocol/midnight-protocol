@@ -74,11 +74,13 @@ const SimpleShareButtonComponent = () => {
     return (
       <Button
         variant="outline"
+        size="sm"
         className="border-terminal-cyan/50 text-terminal-cyan/50 font-mono"
         disabled
       >
-        <Copy className="w-4 h-4 mr-2" />
-        LOADING...
+        <Copy className="w-4 h-4 mr-1 sm:mr-2" />
+        <span className="hidden sm:inline">LOADING...</span>
+        <span className="sm:hidden">LOAD</span>
       </Button>
     );
   }
@@ -88,10 +90,12 @@ const SimpleShareButtonComponent = () => {
       <Button
         onClick={fetchReferralLink}
         variant="outline"
+        size="sm"
         className="border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg font-mono"
       >
-        <Copy className="w-4 h-4 mr-2" />
-        SHARE REFERRAL LINK
+        <Copy className="w-4 h-4 mr-1 sm:mr-2" />
+        <span className="hidden sm:inline">SHARE REFERRAL</span>
+        <span className="sm:hidden">SHARE</span>
       </Button>
     );
   }
@@ -100,18 +104,21 @@ const SimpleShareButtonComponent = () => {
     <Button
       onClick={copyToClipboard}
       variant="outline"
+      size="sm"
       className="border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg font-mono"
       disabled={copied}
     >
       {copied ? (
         <>
-          <Check className="w-4 h-4 mr-2" />
-          COPIED!
+          <Check className="w-4 h-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">COPIED!</span>
+          <span className="sm:hidden">DONE</span>
         </>
       ) : (
         <>
-          <Copy className="w-4 h-4 mr-2" />
-          SHARE REFERRAL LINK
+          <Copy className="w-4 h-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">SHARE REFERRAL</span>
+          <span className="sm:hidden">SHARE</span>
         </>
       )}
     </Button>

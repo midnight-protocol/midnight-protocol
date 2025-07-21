@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Bot, Clock, CheckCircle, Mail, MessageSquare, Users, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { internalAPIService } from '@/services/internal-api.service';
 
 interface AgentStatusCardProps {
   userStatus: string;
@@ -23,32 +23,28 @@ const AgentStatusCardComponent = ({ userStatus, agentName, userId }: AgentStatus
   const fetchAgentStats = useCallback(async () => {
     if (!userId) return;
 
-    // Fetch conversation count
-    const { count: totalConversations } = await supabase
-      .from('agent_conversations')
-      .select('*', { count: 'exact', head: true })
-      .or(`agent_a_user_id.eq.${userId},agent_b_user_id.eq.${userId}`);
+    try {
+      const stats = await internalAPIService.getNetworkingStats(userId);
+      
+      // Calculate next batch time (2 AM PST tomorrow)
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(2, 0, 0, 0);
 
-    // Fetch weekly connections
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    
-    const { count: weeklyConnections } = await supabase
-      .from('agent_conversations')
-      .select('*', { count: 'exact', head: true })
-      .or(`agent_a_user_id.eq.${userId},agent_b_user_id.eq.${userId}`)
-      .gte('created_at', weekAgo.toISOString());
-
-    // Calculate next batch time (2 AM PST tomorrow)
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(2, 0, 0, 0);
-
-    setStats({
-      totalConversations: totalConversations || 0,
-      weeklyConnections: weeklyConnections || 0,
-      nextBatchTime: tomorrow
-    });
+      setStats({
+        totalConversations: stats.totalConversations,
+        weeklyConnections: stats.userConversations, // Use total user conversations as weekly metric
+        nextBatchTime: tomorrow
+      });
+    } catch (error) {
+      console.error('Error fetching agent stats:', error);
+      // Set fallback values on error
+      setStats({
+        totalConversations: 0,
+        weeklyConnections: 0,
+        nextBatchTime: new Date()
+      });
+    }
   }, [userId]);
 
   useEffect(() => {

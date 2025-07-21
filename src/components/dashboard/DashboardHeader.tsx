@@ -1,7 +1,7 @@
 
 import React, { memo } from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Settings, LogOut } from 'lucide-react';
+import { RefreshCw, LogOut } from 'lucide-react';
 
 interface DashboardHeaderProps {
   userHandle: string;
@@ -9,6 +9,7 @@ interface DashboardHeaderProps {
   onRefresh: () => void;
   onSignOut: () => void;
   onAgentNameClick: () => void;
+  children?: React.ReactNode;
 }
 
 const DashboardHeaderComponent = ({ 
@@ -16,7 +17,8 @@ const DashboardHeaderComponent = ({
   agentName, 
   onRefresh, 
   onSignOut, 
-  onAgentNameClick 
+  onAgentNameClick,
+  children
 }: DashboardHeaderProps) => {
   return (
     <div className="terminal-border-bottom p-4 md:p-6">
@@ -35,7 +37,8 @@ const DashboardHeaderComponent = ({
             </button>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          {children}
           <Button 
             variant="outline" 
             size="sm"
@@ -45,14 +48,6 @@ const DashboardHeaderComponent = ({
             <RefreshCw className="w-4 h-4 mr-1 sm:mr-2" />
             <span className="hidden sm:inline">REFRESH</span>
             <span className="sm:hidden">SYNC</span>
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="border-terminal-cyan text-terminal-cyan hover:bg-terminal-cyan hover:text-terminal-bg font-mono hidden sm:flex"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            SETTINGS
           </Button>
           <Button 
             variant="outline" 
