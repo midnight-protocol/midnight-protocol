@@ -127,3 +127,7 @@ supabase functions deploy <function-name>
 ```bash
 supabase db push
 ```
+
+### Frontend Deployment
+
+Merge updates into the deploy branch, it will be automatically deployed to the website via netlify.
