@@ -19,8 +19,8 @@ export interface FunctionCallOptions {
 
 export class TestClient {
   private baseUrl: string;
-  
-  constructor(baseUrl: string = 'http://localhost:54321/functions/v1') {
+
+  constructor(baseUrl: string = "http://localhost:54321/functions/v1") {
     this.baseUrl = baseUrl;
   }
 
@@ -28,34 +28,34 @@ export class TestClient {
    * Call a Supabase edge function with authentication
    */
   async callFunction(
-    functionName: string, 
+    functionName: string,
     user: TestUser,
     payload?: any,
     options: FunctionCallOptions = {}
   ): Promise<FunctionTestResponse> {
     // Input validation
     const schema: ValidationSchema = {
-      functionName: { type: 'string', required: true, minLength: 1 }
+      functionName: { type: "string", required: true, minLength: 1 },
     };
-    
+
     validateInput({ functionName }, schema);
-    
+
     if (!user || !user.authToken) {
-      throw new Error('Valid authenticated user required');
+      throw new Error("Valid authenticated user required");
     }
     const url = `${this.baseUrl}/${functionName}`;
-    
+
     const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${user.authToken}`,
-      ...options.headers
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${user.authToken}`,
+      ...options.headers,
     };
-    
-    console.log(`Calling ${functionName} with token:`, user.authToken ? `${user.authToken.substring(0, 20)}...` : 'NO TOKEN');
-    console.log('Headers being sent:', headers);
+
+    // console.log(`Calling ${functionName} with token:`, user.authToken ? `${user.authToken.substring(0, 20)}...` : 'NO TOKEN');
+    // console.log('Headers being sent:', headers);
 
     const requestOptions: RequestInit = {
-      method: options.method || 'POST',
+      method: options.method || "POST",
       headers,
       body: payload ? JSON.stringify(payload) : undefined,
     };
@@ -81,21 +81,23 @@ export class TestClient {
         ok: response.ok,
         status: response.status,
         data: data,
-        error: !response.ok ? (data?.error || data || `HTTP ${response.status}`) : undefined,
+        error: !response.ok
+          ? data?.error || data || `HTTP ${response.status}`
+          : undefined,
         headers: response.headers,
-        body: responseBody
+        body: responseBody,
       };
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Request failed';
+      const errorMessage =
+        error instanceof Error ? error.message : "Request failed";
       console.error(`Function call to ${functionName} failed:`, errorMessage);
-      
+
       return {
         ok: false,
         status: 0,
         error: errorMessage,
         headers: new Headers(),
-        body: ''
+        body: "",
       };
     }
   }
@@ -110,20 +112,20 @@ export class TestClient {
   ): Promise<FunctionTestResponse> {
     // Validate inputs
     const schema: ValidationSchema = {
-      action: { type: 'string', required: true, minLength: 1 }
+      action: { type: "string", required: true, minLength: 1 },
     };
-    
+
     validateInput({ action }, schema);
-    
+
     if (!adminUser) {
-      throw new Error('Admin user is required but was undefined or null');
-    }
-    
-    if (adminUser.role !== 'admin') {
-      throw new Error('User must have admin role to call admin API');
+      throw new Error("Admin user is required but was undefined or null");
     }
 
-    return this.callFunction('admin-api', adminUser, { action, params });
+    if (adminUser.role !== "admin") {
+      throw new Error("User must have admin role to call admin API");
+    }
+
+    return this.callFunction("admin-api", adminUser, { action, params });
   }
 
   /**
@@ -134,7 +136,7 @@ export class TestClient {
     user: TestUser,
     params?: any
   ): Promise<FunctionTestResponse> {
-    return this.callFunction('internal-api', user, { action, params });
+    return this.callFunction("internal-api", user, { action, params });
   }
 
   /**
@@ -145,7 +147,7 @@ export class TestClient {
     user: TestUser,
     params?: any
   ): Promise<FunctionTestResponse> {
-    return this.callFunction('omniscient-system', user, { action, params });
+    return this.callFunction("omniscient-system", user, { action, params });
   }
 
   /**
@@ -157,14 +159,14 @@ export class TestClient {
     options: FunctionCallOptions = {}
   ): Promise<FunctionTestResponse> {
     const url = `${this.baseUrl}/${functionName}`;
-    
+
     const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers
+      "Content-Type": "application/json",
+      ...options.headers,
     };
 
     const requestOptions: RequestInit = {
-      method: options.method || 'POST',
+      method: options.method || "POST",
       headers,
       body: payload ? JSON.stringify(payload) : undefined,
     };
@@ -184,21 +186,23 @@ export class TestClient {
         ok: response.ok,
         status: response.status,
         data,
-        error: !response.ok ? (data?.error || data || `HTTP ${response.status}`) : undefined,
+        error: !response.ok
+          ? data?.error || data || `HTTP ${response.status}`
+          : undefined,
         headers: response.headers,
-        body: responseBody
+        body: responseBody,
       };
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Request failed';
+      const errorMessage =
+        error instanceof Error ? error.message : "Request failed";
       console.error(`Function call to ${functionName} failed:`, errorMessage);
-      
+
       return {
         ok: false,
         status: 0,
         error: errorMessage,
         headers: new Headers(),
-        body: ''
+        body: "",
       };
     }
   }
@@ -210,14 +214,14 @@ export class TestClient {
     try {
       // Check if functions endpoint responds to OPTIONS request
       const response = await withTimeout(
-        fetch(this.baseUrl, { method: 'OPTIONS' }),
+        fetch(this.baseUrl, { method: "OPTIONS" }),
         5000,
-        'Health check'
+        "Health check"
       );
       // 404 is ok - it means the endpoint exists but no specific function
       return response.ok || response.status === 404;
     } catch (error) {
-      console.warn('Health check failed:', error);
+      console.warn("Health check failed:", error);
       return false;
     }
   }
@@ -225,12 +229,15 @@ export class TestClient {
   /**
    * Wait for functions to be ready
    */
-  async waitForReady(maxAttempts: number = 10, delayMs: number = 1000): Promise<boolean> {
+  async waitForReady(
+    maxAttempts: number = 10,
+    delayMs: number = 1000
+  ): Promise<boolean> {
     for (let i = 0; i < maxAttempts; i++) {
       if (await this.healthCheck()) {
         return true;
       }
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
     return false;
   }
@@ -238,28 +245,59 @@ export class TestClient {
   /**
    * Helper to make GET requests
    */
-  async get(functionName: string, user: TestUser, headers?: Record<string, string>): Promise<FunctionTestResponse> {
-    return this.callFunction(functionName, user, null, { method: 'GET', headers });
+  async get(
+    functionName: string,
+    user: TestUser,
+    headers?: Record<string, string>
+  ): Promise<FunctionTestResponse> {
+    return this.callFunction(functionName, user, null, {
+      method: "GET",
+      headers,
+    });
   }
 
   /**
    * Helper to make POST requests
    */
-  async post(functionName: string, user: TestUser, payload?: any, headers?: Record<string, string>): Promise<FunctionTestResponse> {
-    return this.callFunction(functionName, user, payload, { method: 'POST', headers });
+  async post(
+    functionName: string,
+    user: TestUser,
+    payload?: any,
+    headers?: Record<string, string>
+  ): Promise<FunctionTestResponse> {
+    return this.callFunction(functionName, user, payload, {
+      method: "POST",
+      headers,
+    });
   }
 
   /**
    * Helper to make PUT requests
    */
-  async put(functionName: string, user: TestUser, payload?: any, headers?: Record<string, string>): Promise<FunctionTestResponse> {
-    return this.callFunction(functionName, user, payload, { method: 'PUT', headers });
+  async put(
+    functionName: string,
+    user: TestUser,
+    payload?: any,
+    headers?: Record<string, string>
+  ): Promise<FunctionTestResponse> {
+    return this.callFunction(functionName, user, payload, {
+      method: "PUT",
+      headers,
+    });
   }
 
   /**
    * Helper to make DELETE requests
    */
-  async delete(functionName: string, user: TestUser, payload?: any, headers?: Record<string, string>): Promise<FunctionTestResponse> {
-    return this.callFunction(functionName, user, payload, { method: 'DELETE', headers });
+  async delete(
+    functionName: string,
+    user: TestUser,
+    payload?: any,
+    headers?: Record<string, string>
+  ): Promise<FunctionTestResponse> {
+    return this.callFunction(functionName, user, payload, {
+      method: "DELETE",
+      headers,
+    });
   }
 }

@@ -214,7 +214,23 @@ export class TestAuth {
       }
     }
 
-    // Step 2: Delete database user record
+    // Step 2: Clean up admin_activity_logs if user is admin
+    if (testUser.databaseId && testUser.role === 'admin') {
+      try {
+        const { error } = await this.getClient()
+          .from('admin_activity_logs')
+          .delete()
+          .eq('admin_user_id', testUser.databaseId);
+          
+        if (error && !error.message.includes('does not exist')) {
+          console.warn(`Could not clean up admin_activity_logs: ${error.message}`);
+        }
+      } catch (error) {
+        console.warn(`Error cleaning admin_activity_logs: ${error}`);
+      }
+    }
+    
+    // Step 3: Delete database user record
     if (testUser.databaseId) {
       try {
         const { error } = await this.getClient()
@@ -230,7 +246,7 @@ export class TestAuth {
       }
     }
 
-    // Step 3: Delete auth user (last to avoid orphaned records)
+    // Step 4: Delete auth user (last to avoid orphaned records)
     try {
       const { error } = await this.getClient().auth.admin.deleteUser(userId);
       if (error) {

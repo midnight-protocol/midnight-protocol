@@ -1,3 +1,34 @@
+/**
+ * Internal API Test Suite
+ * 
+ * Test Coverage:
+ * 
+ * 1. Authentication Tests
+ *    - Should authenticate valid user
+ *    - Should reject unauthenticated requests
+ * 
+ * 2. User Operations Tests  
+ *    - Should handle user profile operations (getUserProfile)
+ *    - Should handle email interest operations (getEmailInterests)
+ * 
+ * 3. Onboarding Tests
+ *    - Should handle onboarding flow (startOnboarding)
+ * 
+ * 4. Error Handling Tests
+ *    - Should handle missing action parameter
+ *    - Should handle invalid action
+ *    - Should handle malformed requests
+ * 
+ * 5. User Permissions Tests
+ *    - Should allow user to access own data
+ *    - Should handle cross-user data access appropriately
+ * 
+ * Test Setup:
+ * - Creates two test users (internal1@test.com, internal2@test.com) with 'user' role
+ * - Creates test email_interests record for testing
+ * - All test data is cleaned up after test completion
+ */
+
 import { testFramework } from "./test-framework.ts";
 import { TestAuth } from "./test-auth.ts";
 import { TestClient } from "./test-client.ts";
@@ -15,6 +46,34 @@ let testUser2: any;
 // Global setup for internal API tests
 testFramework.setGlobalSetup(async () => {
   console.log("Setting up internal API test environment...");
+  
+  // Clean up any leftover test data before starting
+  console.log("Cleaning up any leftover test data...");
+  try {
+    // Clean up test email interests
+    await testDb.getClient()
+      .from("email_interests")
+      .delete()
+      .like("email", "%test%");
+    
+    // Clean up test users from database
+    await testDb.getClient()
+      .from("users")
+      .delete()
+      .like("handle", "test-%");
+    
+    // Clean up test auth users
+    const { data: authUsers } = await testDb.getClient().auth.admin.listUsers();
+    if (authUsers) {
+      for (const user of authUsers.users) {
+        if (user.email?.includes("@test.com") || user.email?.includes("test-")) {
+          await testDb.getClient().auth.admin.deleteUser(user.id).catch(() => {});
+        }
+      }
+    }
+  } catch (error) {
+    console.warn("Pre-test cleanup warning:", error);
+  }
   
   // Wait for services to be ready
   await testDb.waitForReady();
@@ -60,9 +119,10 @@ testFramework.describe("Internal API Authentication")
 testFramework.describe("Internal API User Operations", async () => {
   // Setup test data
   await testDb.createTestRecord('email_interests', {
+    name: 'Test User',
     email: 'test-interest@example.com',
-    interests: ['technology', 'science'],
-    status: 'pending'
+    updates_consent: true,
+    related_initiatives_consent: false
   });
 }, async () => {
   // Cleanup handled by global teardown

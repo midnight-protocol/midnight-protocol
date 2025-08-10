@@ -335,10 +335,12 @@ export class TestDatabase {
    * Create test system config
    */
   async createTestSystemConfig(key: string, value: any): Promise<any> {
-    return this.createTestRecord('system_configs', {
-      key,
-      value: typeof value === 'string' ? value : JSON.stringify(value),
-      created_at: new Date().toISOString()
+    return this.createTestRecord('system_config', {
+      category: 'test',
+      config_key: key,
+      config_value: typeof value === 'object' ? value : { value },
+      description: 'Test configuration',
+      updated_at: new Date().toISOString()
     });
   }
 

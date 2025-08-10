@@ -35,23 +35,31 @@ The framework solves the authentication challenge by:
 ### Important Discoveries
 
 #### Database Triggers
+
 If your database has a `handle_new_user` trigger that auto-creates user records when auth users are created, the test framework handles this by:
+
 - Not including the handle in user metadata (to avoid conflicts)
 - Using UPDATE instead of INSERT to modify the auto-created user record
 - Setting the correct role and status on the existing record
 
 #### Lazy Initialization
+
 Test utilities use lazy initialization for Supabase clients to ensure environment variables are set before connection. This prevents issues when test files are imported before environment setup.
 
 #### Response Structure
+
 Admin API responses follow a consistent structure:
+
 ```json
 {
   "success": true,
-  "data": { /* actual response data */ },
+  "data": {
+    /* actual response data */
+  },
   "timestamp": "2024-01-01T00:00:00.000Z"
 }
 ```
+
 Test assertions should check `response.data.data` for the actual payload.
 
 ## Getting Started
@@ -66,33 +74,36 @@ Test assertions should check `response.data.data` for the actual payload.
 ### Running Tests
 
 ```bash
+# Change to the supabase functions test directory
+cd supabase/functions/tests
+
 # Clean up any existing test data first
-deno run --allow-env --allow-net tests/cleanup-test-users.ts
+deno run --allow-env --allow-net cleanup-test-users.ts
 
 # Run all tests
-deno run --allow-all tests/run-tests.ts
+deno run --allow-all run-tests.ts
 
 # Run specific test pattern
-deno run --allow-all tests/run-tests.ts -p admin
+deno run --allow-all run-tests.ts -p admin
 
 # Run specific test suites
-deno run --allow-all tests/run-tests.ts -s admin-api,internal-api
+deno run --allow-all run-tests.ts -s admin-api,internal-api
 
 # Run with verbose output
-deno run --allow-all tests/run-tests.ts -v
+deno run --allow-all run-tests.ts -v
 
 # Get help
-deno run --allow-all tests/run-tests.ts --help
+deno run --allow-all run-tests.ts --help
 ```
 
 ### Individual Test Files
 
 ```bash
 # Run a specific test file
-deno run --allow-all tests/admin-api.test.ts
+deno run --allow-all admin-api.test.ts
 
 # Run internal API tests
-deno run --allow-all tests/internal-api.test.ts
+deno run --allow-all internal-api.test.ts
 ```
 
 ## Writing Tests
@@ -113,8 +124,16 @@ const testDb = new TestDatabase();
 // Global setup
 testFramework.setGlobalSetup(async () => {
   // Create test users
-  const adminUser = await testAuth.createTestUser("admin@test.com", "password", "admin");
-  const regularUser = await testAuth.createTestUser("user@test.com", "password", "user");
+  const adminUser = await testAuth.createTestUser(
+    "admin@test.com",
+    "password",
+    "admin"
+  );
+  const regularUser = await testAuth.createTestUser(
+    "user@test.com",
+    "password",
+    "user"
+  );
 });
 
 // Global teardown
@@ -124,14 +143,15 @@ testFramework.setGlobalTeardown(async () => {
 });
 
 // Test suite
-testFramework.describe("My Function Tests")
-.test("should do something", async (ctx) => {
-  const response = await testClient.callAdminApi("someAction", adminUser);
-  
-  ctx.assertSuccess(response);
-  ctx.assertExists(response.data);
-  ctx.assertEquals(response.data.someField, "expected value");
-});
+testFramework
+  .describe("My Function Tests")
+  .test("should do something", async (ctx) => {
+    const response = await testClient.callAdminApi("someAction", adminUser);
+
+    ctx.assertSuccess(response);
+    ctx.assertExists(response.data);
+    ctx.assertEquals(response.data.someField, "expected value");
+  });
 ```
 
 ### Available Assertions
@@ -144,9 +164,9 @@ ctx.assertExists(value);
 ctx.assertFalse(condition);
 
 // HTTP response assertions
-ctx.assertResponse(response, 200);     // Check status code
-ctx.assertSuccess(response);           // Check if response is successful
-ctx.assertError(response);             // Check if response is an error
+ctx.assertResponse(response, 200); // Check status code
+ctx.assertSuccess(response); // Check if response is successful
+ctx.assertError(response); // Check if response is an error
 
 // Object/array assertions
 ctx.assertHasProperty(obj, "property");
@@ -172,7 +192,10 @@ const response = await testClient.callOmniscientSystem("getAnalytics", user);
 const response = await testClient.callFunction("function-name", user, payload);
 
 // Unauthenticated calls (for testing auth failures)
-const response = await testClient.callFunctionUnauthenticated("function-name", payload);
+const response = await testClient.callFunctionUnauthenticated(
+  "function-name",
+  payload
+);
 
 // HTTP method helpers
 await testClient.get("function-name", user);
@@ -185,28 +208,31 @@ await testClient.delete("function-name", user, payload);
 
 ```typescript
 // Create test data (automatically registered for cleanup)
-const testUser = await testDb.createTestRecord('users', {
-  auth_user_id: 'test-auth-id',
-  handle: 'test-user',
-  role: 'user'
+const testUser = await testDb.createTestRecord("users", {
+  auth_user_id: "test-auth-id",
+  handle: "test-user",
+  role: "user",
 });
 
 // Create multiple records
-const testRecords = await testDb.createTestData('conversations', [
-  { participants: ['user1', 'user2'] },
-  { participants: ['user2', 'user3'] }
+const testRecords = await testDb.createTestData("conversations", [
+  { participants: ["user1", "user2"] },
+  { participants: ["user2", "user3"] },
 ]);
 
 // Get test data
-const users = await testDb.getTestData('users', { role: 'test' });
+const users = await testDb.getTestData("users", { role: "test" });
 
 // Execute raw SQL
-await testDb.executeSql('UPDATE users SET status = $1 WHERE role = $2', ['active', 'test']);
+await testDb.executeSql("UPDATE users SET status = $1 WHERE role = $2", [
+  "active",
+  "test",
+]);
 
 // Create specific test data
-const config = await testDb.createTestSystemConfig('test_key', 'test_value');
-const conversation = await testDb.createTestConversation(['user1', 'user2']);
-const match = await testDb.createTestMatch(['user1', 'user2']);
+const config = await testDb.createTestSystemConfig("test_key", "test_value");
+const conversation = await testDb.createTestConversation(["user1", "user2"]);
+const match = await testDb.createTestMatch(["user1", "user2"]);
 ```
 
 ## Test Organization
@@ -248,11 +274,12 @@ TEST_MODE=true  # Ensures we're in test environment
 ```
 
 For local development with default Supabase CLI keys:
+
 ```bash
 # Default local anon key
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
 
-# Default local service role key  
+# Default local service role key
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
 ```
 
@@ -260,11 +287,11 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 
 ```typescript
 const config = {
-  baseUrl: 'http://localhost:54321/functions/v1',  // Functions endpoint
-  timeout: 30000,                                   // Request timeout
-  verbose: true,                                    // Detailed logging
-  pattern: 'admin',                                 // Run tests matching pattern
-  suites: ['admin-api', 'internal-api']            // Specific test suites
+  baseUrl: "http://localhost:54321/functions/v1", // Functions endpoint
+  timeout: 30000, // Request timeout
+  verbose: true, // Detailed logging
+  pattern: "admin", // Run tests matching pattern
+  suites: ["admin-api", "internal-api"], // Specific test suites
 };
 ```
 
@@ -305,31 +332,37 @@ const config = {
 ### Common Issues
 
 1. **"Database not ready"**
+
    - Run `supabase start` before running tests
    - Check if all services are running with `supabase status`
    - Ensure environment variables are set before test utility initialization
 
 2. **"Functions not ready"**
+
    - Ensure functions are being served with `supabase functions serve --env-file .env`
    - Check the functions URL in test configuration
    - The health check uses OPTIONS request to the functions endpoint
 
 3. **Authentication failures**
+
    - Verify service role key is correct for local instance
    - Check user creation and token generation
    - Remember that JWT tokens are obtained via `signInWithPassword`, not generated
 
 4. **Test data conflicts**
+
    - Run cleanup script: `deno run --allow-env --allow-net tests/cleanup-test-users.ts`
    - Ensure proper cleanup in teardown functions
    - Use unique identifiers for test data (uses timestamp + random string)
 
 5. **"duplicate key value violates unique constraint"**
+
    - This often indicates a database trigger creating records
    - Check for `handle_new_user` or similar triggers
    - The framework handles this by updating existing records instead of inserting
 
 6. **"Cannot read properties of undefined (reading 'replace')"**
+
    - Usually means an expected parameter is undefined
    - Check that test users are properly initialized in global setup
    - Verify the action you're calling exists in the edge function
@@ -343,10 +376,10 @@ const config = {
 
 ```bash
 # Run with verbose output
-deno run --allow-all tests/run-tests.ts -v
+deno run --allow-all run-tests.ts -v
 
 # Run specific failing test
-deno run --allow-all tests/admin-api.test.ts
+deno run --allow-all admin-api.test.ts
 
 # Check Supabase logs
 supabase logs
@@ -365,5 +398,6 @@ When adding new tests:
 ## Examples
 
 See the existing test files for comprehensive examples:
+
 - `admin-api.test.ts` - Admin API testing with role verification
 - `internal-api.test.ts` - User API testing with authentication

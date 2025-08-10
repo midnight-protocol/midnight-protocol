@@ -1,6 +1,7 @@
 #!/usr/bin/env -S deno run --allow-net --allow-env --allow-read --allow-write
 
 import { parseArgs } from "jsr:@std/cli/parse-args";
+import { load } from "jsr:@std/dotenv";
 import { validateTestEnvironment, requireTestEnvironment } from "./test-utils.ts";
 
 interface TestConfig {
@@ -52,7 +53,7 @@ class TestRunner {
    */
   async runTestFile(filePath: string): Promise<{ passed: number, failed: number, error?: Error }> {
     try {
-      console.log(`\n🔧 Loading test file: ${filePath}`);
+      console.log(`\n🔧 Running test file: ${filePath}`);
       
       // Validate test environment first
       requireTestEnvironment();
@@ -82,51 +83,88 @@ class TestRunner {
         Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU');
       }
       
-      // Store original console.log to capture test output
-      const originalLog = console.log;
-      const testOutput: string[] = [];
+      // Run the test file as a subprocess to properly execute it
+      const command = new Deno.Command("deno", {
+        args: ["run", "--allow-all", filePath],
+        stdout: "piped",
+        stderr: "piped",
+        env: {
+          ...Deno.env.toObject(),
+          TEST_MODE: "true",
+          NODE_ENV: "test"
+        }
+      });
+      
+      // Execute command and capture output
+      const output = await command.output();
+      const outputText = new TextDecoder().decode(output.stdout);
+      const errorText = new TextDecoder().decode(output.stderr);
+      
+      // Print the output to console
+      if (outputText) {
+        console.log(outputText);
+      }
+      if (errorText) {
+        console.error(errorText);
+      }
+      
+      // Parse test results from output - look for the TEST SUMMARY from test-framework
       let testResults = { passed: 0, failed: 0 };
       
-      // Capture test results from console output
-      console.log = (...args: any[]) => {
-        const message = args.join(' ');
-        testOutput.push(message);
-        
-        // Parse test results from output
-        if (message.includes('✅')) {
-          testResults.passed++;
-        } else if (message.includes('❌')) {
-          testResults.failed++;
-        }
-        
-        // Still output to console
-        originalLog(...args);
-      };
+      // Split into lines and look for the summary pattern
+      const lines = outputText.split('\n');
       
-      try {
-        // Import and run the test
-        const testModule = await import(filePath);
-        
-        // If the module exports a run function, call it
-        if (testModule.run && typeof testModule.run === 'function') {
-          const results = await testModule.run();
-          if (results && typeof results.passed === 'number' && typeof results.failed === 'number') {
-            testResults = results;
+      // Find the TEST SUMMARY section (there should be exactly one per test file)
+      // It's preceded and followed by ═ characters
+      for (let i = 0; i < lines.length; i++) {
+        // Look for the pattern: ═══...═══\n📊 TEST SUMMARY\n═══...═══
+        if (lines[i].includes('═') && lines[i].length > 20) {
+          if (i + 1 < lines.length && lines[i + 1].includes('TEST SUMMARY')) {
+            // Found the summary header, now get the counts
+            for (let j = i + 2; j < Math.min(i + 10, lines.length); j++) {
+              const line = lines[j];
+              
+              // Stop at the closing separator
+              if (line.includes('═') && line.length > 20) {
+                break;
+              }
+              
+              // Parse the counts
+              const passedMatch = line.match(/✅ Passed:\s*(\d+)/);
+              const failedMatch = line.match(/❌ Failed:\s*(\d+)/);
+              
+              if (passedMatch) {
+                testResults.passed = parseInt(passedMatch[1]);
+              }
+              if (failedMatch) {
+                testResults.failed = parseInt(failedMatch[1]);
+              }
+            }
+            
+            // We found the summary, stop looking
+            if (testResults.passed > 0 || testResults.failed > 0) {
+              break;
+            }
           }
         }
-        
-        // Parse final results from captured output if not already set
-        if (testResults.passed === 0 && testResults.failed === 0) {
-          for (const line of testOutput) {
-            const passMatch = line.match(/(\d+) passed/);
-            const failMatch = line.match(/(\d+) failed/);
-            if (passMatch) testResults.passed = parseInt(passMatch[1]);
-            if (failMatch) testResults.failed = parseInt(failMatch[1]);
+      }
+      
+      // If we still didn't find results, count actual test lines as fallback
+      if (testResults.passed === 0 && testResults.failed === 0) {
+        for (const line of lines) {
+          // Count actual test result lines (indented with test names)
+          if (line.match(/^\s{2}✅\s+should/)) {
+            testResults.passed++;
+          } else if (line.match(/^\s{2}❌\s+should/)) {
+            testResults.failed++;
           }
         }
-      } finally {
-        // Restore original console.log
-        console.log = originalLog;
+      }
+      
+      // Check exit code
+      if (!output.success && testResults.passed === 0 && testResults.failed === 0) {
+        // If the process failed and we couldn't parse results, count it as a failure
+        testResults.failed = 1;
       }
       
       return testResults;
@@ -204,13 +242,20 @@ class TestRunner {
     }
 
     // Run each test file
+    const fileResults: Map<string, { passed: number, failed: number }> = new Map();
+    
     for (const testFile of targetFiles) {
       try {
         const result = await this.runTestFile(testFile);
+        fileResults.set(testFile, { passed: result.passed, failed: result.failed });
         totalPassed += result.passed;
         totalFailed += result.failed;
         if (result.error) {
           totalErrors++;
+        }
+        
+        if (this.config.verbose) {
+          console.log(`📊 ${testFile}: ${result.passed} passed, ${result.failed} failed`);
         }
       } catch (error) {
         console.error(`💥 Failed to run ${testFile}:`, error);
@@ -267,27 +312,57 @@ class TestRunner {
     const errors: string[] = [];
     
     try {
-      // Check Supabase API
-      const apiResponse = await fetch(`${this.config.baseUrl?.replace('/functions/v1', '')}/health`, {
+      // Check Supabase REST API by trying to access the OpenAPI spec
+      const baseUrl = this.config.baseUrl?.replace('/functions/v1', '') || 'http://localhost:54321';
+      const apiResponse = await fetch(`${baseUrl}/rest/v1/`, {
         method: 'GET',
-        headers: { 'Accept': 'application/json' }
+        headers: { 
+          'Accept': 'application/json',
+          'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
+        }
       });
       
-      if (!apiResponse.ok) {
-        errors.push(`Supabase API not responding (${apiResponse.status})`);
+      // The REST API should return something (even if it's an error about missing tables)
+      // We just want to know if the service is running
+      if (!apiResponse) {
+        errors.push(`Supabase REST API not responding`);
       }
     } catch (error) {
       errors.push(`Cannot connect to Supabase API: ${error.message}`);
     }
 
     try {
-      // Check if we can reach functions endpoint
-      const functionsResponse = await fetch(this.config.baseUrl!, {
-        method: 'OPTIONS'
+      // Check if we can reach the auth endpoint
+      const baseUrl = this.config.baseUrl?.replace('/functions/v1', '') || 'http://localhost:54321';
+      const authResponse = await fetch(`${baseUrl}/auth/v1/health`, {
+        method: 'GET'
       });
       
-      if (!functionsResponse.ok && functionsResponse.status !== 404) {
-        errors.push(`Functions endpoint not accessible (${functionsResponse.status})`);
+      // Auth health endpoint should return 200
+      if (!authResponse.ok && authResponse.status !== 404) {
+        errors.push(`Auth service not responding (${authResponse.status})`);
+      }
+    } catch (error) {
+      // This is OK - just means auth endpoint might not have a health check
+    }
+
+    try {
+      // Check if we can reach functions endpoint by checking if it returns proper CORS headers
+      const functionsTest = await fetch(`${this.config.baseUrl}/test-function-that-does-not-exist`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY') || ''}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
+      
+      // We expect 404 (function not found) or 401 (unauthorized) - both mean the service is running
+      if (functionsTest.status !== 404 && functionsTest.status !== 401 && functionsTest.status !== 400) {
+        // If we get a different error, the service might not be running properly
+        if (!functionsTest.ok) {
+          errors.push(`Functions endpoint not accessible (${functionsTest.status})`);
+        }
       }
     } catch (error) {
       errors.push(`Cannot connect to functions endpoint: ${error.message}`);
@@ -302,6 +377,15 @@ class TestRunner {
 
 // CLI interface
 async function main() {
+  // Load environment variables from .env.test file
+  try {
+    await load({ envPath: '.env.test', export: true });
+    console.log("✅ Loaded environment variables from .env.test");
+  } catch (error) {
+    console.warn("⚠️  Could not load .env.test file:", error.message);
+    console.log("   Using existing environment variables or defaults");
+  }
+
   const args = parseArgs(Deno.args, {
     string: ['pattern', 'url', 'output', 'suites'],
     boolean: ['verbose', 'help', 'skip-setup', 'skip-teardown'],
