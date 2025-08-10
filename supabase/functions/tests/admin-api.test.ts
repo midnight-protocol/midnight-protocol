@@ -136,15 +136,23 @@ testFramework.describe("Admin API System Health", async () => {
   
   ctx.assertSuccess(response);
   ctx.assertExists(response.data);
-  ctx.assertHasProperty(response.data, 'database');
-  ctx.assertHasProperty(response.data, 'functions');
+  ctx.assertExists(response.data.data);
+  // Check the actual structure returned
+  ctx.assertHasProperty(response.data.data, 'database');
+  ctx.assertHasProperty(response.data.data, 'aiService');
+  ctx.assertHasProperty(response.data.data, 'emailService');
+  ctx.assertHasProperty(response.data.data, 'metrics');
 })
 .test("should get alert thresholds", async (ctx) => {
   const response = await testClient.callAdminApi("getAlertThresholds", adminUser);
   
   ctx.assertSuccess(response);
   ctx.assertExists(response.data);
-  ctx.assert(Array.isArray(response.data), "Alert thresholds should be an array");
+  ctx.assertExists(response.data.data);
+  // Alert thresholds returns an object with threshold values
+  ctx.assert(typeof response.data.data === 'object', "Alert thresholds should be an object");
+  ctx.assertHasProperty(response.data.data, 'api_response_time');
+  ctx.assertHasProperty(response.data.data, 'batch_completion_rate');
 });
 
 // Admin API Configuration Tests
