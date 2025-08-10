@@ -1,0 +1,66 @@
+{
+  "admin": {
+    "emailPrefix": "e2e-admin",
+    "password": "TestPassword123!",
+    "role": "admin"
+  },
+  "journeyUsers": [
+    {
+      "name": "Professional Developer",
+      "emailPrefix": "e2e-journey-dev",
+      "password": "TestPassword123!",
+      "handlePrefix": "e2e-handle-dev",
+      "agent": {
+        "namePrefix": "DevAgent",
+        "communicationStyle": "warm_conversational"
+      },
+      "onboarding": {
+        "messages": [
+          "I'm a software developer with 10 years of experience",
+          "I specialize in distributed systems and cloud architecture",
+          "Looking to connect with other technical leaders",
+          "Interested in mentoring and knowledge sharing",
+          "I value collaborative problem solving"
+        ]
+      }
+    },
+    {
+      "name": "Creative Designer",
+      "emailPrefix": "e2e-journey-design",
+      "password": "TestPassword123!",
+      "handlePrefix": "e2e-handle-design",
+      "agent": {
+        "namePrefix": "DesignAgent",
+        "communicationStyle": "friendly_enthusiastic"
+      },
+      "onboarding": {
+        "messages": [
+          "I'm a UX/UI designer passionate about creating beautiful experiences",
+          "I work at the intersection of art and technology",
+          "Looking for collaborations with developers and product managers",
+          "I believe great design can change the world",
+          "Always eager to learn about new design trends and tools"
+        ]
+      }
+    },
+    {
+      "name": "Startup Founder",
+      "emailPrefix": "e2e-journey-founder",
+      "password": "TestPassword123!",
+      "handlePrefix": "e2e-handle-founder",
+      "agent": {
+        "namePrefix": "FounderAgent",
+        "communicationStyle": "professional_concise"
+      },
+      "onboarding": {
+        "messages": [
+          "Serial entrepreneur with 3 successful exits",
+          "Currently building in the AI and healthcare space",
+          "Looking for technical co-founders and advisors",
+          "Interested in connecting with investors and mentors",
+          "Passionate about building teams and scaling startups"
+        ]
+      }
+    }
+  ]
+}
