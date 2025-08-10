@@ -26,6 +26,81 @@
  *    - Should handle invalid action  
  *    - Should handle malformed request
  * 
+ * TODO: Additional tests to add based on available actions:
+ * 
+ * System Health Actions (from actions/health.ts):
+ * - updateAlertThreshold: Test updating alert threshold values with validation
+ * - resolveAlert: Test resolving active alerts with proper status updates
+ * 
+ * User Management Actions (from actions/users.ts):
+ * - updateUserStatus: Test changing user status (PENDING, APPROVED, REJECTED)
+ * - bulkUserOperation: Test bulk operations on multiple users (approve, reject, delete)
+ * - getUserMatches: Test fetching user's match history and details
+ * - getMatchInsights: Test retrieving match analytics and insights
+ * - getUserConversations: Test fetching user's conversation history
+ * - getConversationTurns: Test getting detailed conversation turn data
+ * 
+ * Test User Management Actions (from actions/users.ts):
+ * - createTestUsers: Test creating multiple test users with different profiles
+ * - deleteAllTestUsers: Test cleanup of all test users from system
+ * - getTestUsers: Test fetching list of test users with filters
+ * 
+ * Conversation Actions (from actions/conversations.ts):
+ * - getConversations: Test fetching paginated conversation list with filters
+ * - exportConversations: Test exporting conversations to CSV/JSON format
+ * - getConversationDetails: Test fetching detailed conversation metadata
+ * 
+ * Configuration Actions (from actions/config.ts):
+ * - getConfigHistory: Test fetching configuration change history with audit trail
+ * 
+ * Activity Actions (from actions/activity.ts):
+ * - getActivityLogs: Test fetching admin activity logs with filters and pagination
+ * - exportActivityLogs: Test exporting activity logs to CSV/JSON format
+ * 
+ * Metrics Actions (from actions/metrics.ts):
+ * - getNetworkMetrics: Test fetching network-wide metrics and statistics
+ * - getMetrics: Test fetching various system metrics with date ranges
+ * - refreshMetricsCache: Test manual metrics cache refresh functionality
+ * - exportMetrics: Test exporting metrics data to CSV/JSON format
+ * 
+ * Prompt Template Actions (from actions/prompts.ts):
+ * - getPromptTemplates: Test fetching all prompt templates with filters
+ * - getPromptTemplate: Test fetching single prompt template by ID
+ * - createPromptTemplate: Test creating new prompt template with validation
+ * - updatePromptTemplate: Test updating existing prompt template with versioning
+ * - getPromptVersions: Test fetching prompt version history
+ * - restorePromptVersion: Test restoring previous prompt version
+ * - exportPromptTemplates: Test exporting prompt templates to JSON
+ * - importPromptTemplates: Test importing prompt templates from JSON
+ * - runPrompt: Test executing prompt template with variables
+ * 
+ * LLM Actions (from actions/llm.ts):
+ * - getAvailableModels: Test fetching list of available LLM models
+ * 
+ * LLM Log Actions (from actions/llm-logs.ts):
+ * - getLLMLogs: Test fetching LLM usage logs with filters and pagination
+ * - getLLMLogDetails: Test fetching detailed LLM log entry
+ * - getLLMLogStats: Test fetching LLM usage statistics and analytics
+ * - exportLLMLogs: Test exporting LLM logs to CSV/JSON format
+ * 
+ * Email Interest Actions (from actions/email-interests.ts):
+ * - getEmailInterests: Test fetching email interest submissions with filters
+ * - getEmailInterestStats: Test fetching email interest statistics
+ * - exportEmailInterests: Test exporting email interests to CSV/JSON
+ * - deleteEmailInterest: Test deleting email interest record
+ * 
+ * Email Template Actions (from actions/email-templates.ts):
+ * - getEmailTemplates: Test fetching all email templates
+ * - getEmailTemplate: Test fetching single email template by ID
+ * - createEmailTemplate: Test creating new email template with validation
+ * - updateEmailTemplate: Test updating existing email template with versioning
+ * - getEmailVersions: Test fetching email template version history
+ * - restoreEmailVersion: Test restoring previous email template version
+ * - exportEmailTemplates: Test exporting email templates to JSON
+ * - importEmailTemplates: Test importing email templates from JSON
+ * - sendTestEmail: Test sending test email with template
+ * - getEmailCategories: Test fetching available email categories
+ * 
  * Test Setup:
  * - Creates admin user (admin@test.com) with 'admin' role
  * - Creates regular user (user@test.com) with 'user' role for permission testing

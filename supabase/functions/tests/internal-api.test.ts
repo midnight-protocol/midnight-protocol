@@ -23,6 +23,28 @@
  *    - Should allow user to access own data
  *    - Should handle cross-user data access appropriately
  * 
+ * TODO: Additional tests to add based on available actions:
+ * 
+ * User Actions (from actions/users.ts):
+ * - getDashboardData: Test fetching complete dashboard data with agent profile, personal story, onboarding status
+ * - updateAgentName: Test updating agent profile name with valid/invalid parameters
+ * - getUserInternalId: Test fetching internal user ID from auth user ID
+ * - getNetworkingStats: Test fetching user's networking statistics from matches
+ * - getUserConversations: Test fetching paginated conversation history with offset/limit
+ * 
+ * Onboarding Actions (from actions/onboarding.ts):
+ * - initializeOnboardingChat: Test creating new onboarding conversation and loading existing one
+ * - sendOnboardingMessage: Test sending messages and receiving AI responses with essence updates
+ * - completeOnboarding: Test marking onboarding as complete and updating user status to PENDING
+ * - getOnboardingData: Test fetching user record and existing agent profile
+ * - saveAgentPersonalization: Test saving agent name and communication style
+ * - getPersonalStory: Test fetching user's personal story from database
+ * - updateUserTimezone: Test updating user's timezone preference
+ * 
+ * Email Interest Actions (from actions/email-interest.ts):
+ * - submitEmailInterest: Test submitting email interest without authentication
+ * - submitEmailInterest validation: Test email format validation and duplicate submission handling
+ * 
  * Test Setup:
  * - Creates two test users (internal1@test.com, internal2@test.com) with 'user' role
  * - Creates test email_interests record for testing
