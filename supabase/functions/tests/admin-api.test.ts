@@ -153,38 +153,55 @@ testFramework.describe("Admin API User Management")
   
   ctx.assertSuccess(response);
   ctx.assertExists(response.data);
-  // Check nested data structure
-  const stats = response.data.data || response.data;
-  ctx.assertHasProperty(stats, 'total_users');
-  ctx.assertHasProperty(stats, 'active_users');
+  ctx.assertExists(response.data.data);
+  
+  // The admin-api returns { success, data, timestamp } where data contains the actual stats
+  const stats = response.data.data;
+  ctx.assertHasProperty(stats, 'total');
+  ctx.assertHasProperty(stats, 'pending');
+  ctx.assertHasProperty(stats, 'approved');
+  ctx.assertHasProperty(stats, 'rejected');
+  ctx.assertHasProperty(stats, 'activeToday');
+  ctx.assertHasProperty(stats, 'newThisWeek');
 })
 .test("should search users", async (ctx) => {
   const response = await testClient.callAdminApi("searchUsers", adminUser, {
-    query: "test-user",
+    search: "test-",  // Use 'search' not 'query' parameter
     limit: 10
   });
   
   ctx.assertSuccess(response);
   ctx.assertExists(response.data);
-  // Check nested data structure
-  const users = response.data.data || response.data;
-  ctx.assert(Array.isArray(users), "Response should be an array");
+  ctx.assertExists(response.data.data);
+  
+  // The admin-api returns { success, data, timestamp } where data contains the search results
+  // searchUsers returns { users: [], total, page, pageSize }
+  const searchResult = response.data.data;
+  ctx.assertHasProperty(searchResult, 'users');
+  ctx.assertHasProperty(searchResult, 'total');
+  ctx.assert(Array.isArray(searchResult.users), "Users should be an array");
 })
 .test("should get user details", async (ctx) => {
   // Use the regular test user created in global setup
-  if (!regularUser || !regularUser.databaseId) {
+  if (!regularUser) {
     ctx.log("Regular user not available for testing");
     ctx.assert(false, "Regular user not initialized properly");
     return;
   }
   
+  // Log the regularUser to debug
+  ctx.log(`Regular user: ${JSON.stringify({ id: regularUser.id, databaseId: regularUser.databaseId, handle: regularUser.handle })}`);
+  
   const response = await testClient.callAdminApi("getUserDetails", adminUser, {
-    user_id: regularUser.databaseId
+    userId: regularUser.databaseId || regularUser.id  // Use camelCase 'userId' not 'user_id'
   });
   
   ctx.assertSuccess(response);
   ctx.assertExists(response.data);
-  const details = response.data.data || response.data;
+  ctx.assertExists(response.data.data);
+  
+  // The admin-api returns { success, data, timestamp } where data contains the user details
+  const details = response.data.data;
   ctx.assertHasProperty(details, 'handle');
 });
 
