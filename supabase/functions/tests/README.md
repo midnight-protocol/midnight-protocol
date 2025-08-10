@@ -20,16 +20,39 @@ This custom testing framework provides:
 - **TestClient** (`test-client.ts`): HTTP client for making authenticated requests to functions
 - **TestDatabase** (`test-database.ts`): Database utilities for test data management
 - **TestFramework** (`test-framework.ts`): Custom test runner with assertions and reporting
+- **TestUtils** (`test-utils.ts`): Environment validation, input validation, and utility functions
 
 ### Authentication Strategy
 
 The framework solves the authentication challenge by:
 
 1. **Creating Real Users**: Uses Supabase Admin API to create actual auth users
-2. **Database Records**: Creates corresponding records in your `users` table
-3. **Token Generation**: Generates valid JWT tokens for authentication
+2. **Handling Database Triggers**: Works with `handle_new_user` triggers that auto-create user records
+3. **Token Generation**: Signs in users to get valid JWT tokens for authentication
 4. **Role Management**: Supports different user roles (admin, user, test)
 5. **Automatic Cleanup**: Removes test users and data after tests complete
+
+### Important Discoveries
+
+#### Database Triggers
+If your database has a `handle_new_user` trigger that auto-creates user records when auth users are created, the test framework handles this by:
+- Not including the handle in user metadata (to avoid conflicts)
+- Using UPDATE instead of INSERT to modify the auto-created user record
+- Setting the correct role and status on the existing record
+
+#### Lazy Initialization
+Test utilities use lazy initialization for Supabase clients to ensure environment variables are set before connection. This prevents issues when test files are imported before environment setup.
+
+#### Response Structure
+Admin API responses follow a consistent structure:
+```json
+{
+  "success": true,
+  "data": { /* actual response data */ },
+  "timestamp": "2024-01-01T00:00:00.000Z"
+}
+```
+Test assertions should check `response.data.data` for the actual payload.
 
 ## Getting Started
 
@@ -37,11 +60,15 @@ The framework solves the authentication challenge by:
 
 1. **Supabase CLI**: Install and configure Supabase CLI
 2. **Local Supabase**: Run `supabase start` to start local instance
-3. **Environment**: Ensure functions are served locally
+3. **Serve Functions**: Run `supabase functions serve --env-file .env` in a separate terminal
+4. **Environment Variables**: Set up `.env.test` or export required variables
 
 ### Running Tests
 
 ```bash
+# Clean up any existing test data first
+deno run --allow-env --allow-net tests/cleanup-test-users.ts
+
 # Run all tests
 deno run --allow-all tests/run-tests.ts
 
@@ -198,7 +225,9 @@ tests/
 ├── test-client.ts         # HTTP client for functions
 ├── test-database.ts       # Database utilities
 ├── test-framework.ts      # Core test framework
+├── test-utils.ts         # Validation and utilities
 ├── run-tests.ts          # Test runner CLI
+├── cleanup-test-users.ts # Cleanup utility
 ├── admin-api.test.ts     # Admin API tests
 ├── internal-api.test.ts  # Internal API tests
 ├── omniscient.test.ts    # Omniscient system tests
@@ -215,6 +244,16 @@ The test runner automatically sets these for local testing:
 SUPABASE_URL=http://localhost:54321
 SUPABASE_ANON_KEY=<local-anon-key>
 SUPABASE_SERVICE_ROLE_KEY=<local-service-role-key>
+TEST_MODE=true  # Ensures we're in test environment
+```
+
+For local development with default Supabase CLI keys:
+```bash
+# Default local anon key
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+
+# Default local service role key  
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
 ```
 
 ### Test Configuration
@@ -268,18 +307,37 @@ const config = {
 1. **"Database not ready"**
    - Run `supabase start` before running tests
    - Check if all services are running with `supabase status`
+   - Ensure environment variables are set before test utility initialization
 
 2. **"Functions not ready"**
-   - Ensure functions are being served with `supabase functions serve`
+   - Ensure functions are being served with `supabase functions serve --env-file .env`
    - Check the functions URL in test configuration
+   - The health check uses OPTIONS request to the functions endpoint
 
 3. **Authentication failures**
    - Verify service role key is correct for local instance
    - Check user creation and token generation
+   - Remember that JWT tokens are obtained via `signInWithPassword`, not generated
 
 4. **Test data conflicts**
+   - Run cleanup script: `deno run --allow-env --allow-net tests/cleanup-test-users.ts`
    - Ensure proper cleanup in teardown functions
-   - Use unique identifiers for test data
+   - Use unique identifiers for test data (uses timestamp + random string)
+
+5. **"duplicate key value violates unique constraint"**
+   - This often indicates a database trigger creating records
+   - Check for `handle_new_user` or similar triggers
+   - The framework handles this by updating existing records instead of inserting
+
+6. **"Cannot read properties of undefined (reading 'replace')"**
+   - Usually means an expected parameter is undefined
+   - Check that test users are properly initialized in global setup
+   - Verify the action you're calling exists in the edge function
+
+7. **Response structure mismatches**
+   - Admin API wraps responses in `{success, data, timestamp}` structure
+   - Access actual data via `response.data.data`
+   - Check actual response structure with `ctx.log(JSON.stringify(response.data))`
 
 ### Debugging Tests
 
