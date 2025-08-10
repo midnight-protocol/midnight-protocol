@@ -60,6 +60,7 @@ Midnight Protocol (midnightprotocol.org) is an innovative SaaS platform that rev
 - Node.js & npm (install with [nvm](https://github.com/nvm-sh/nvm#installing-and-updating)) - v20.19.0 or higher
 - Docker (for local development) [docker](https://docs.docker.com/get-docker/)
 - Supabase CLI (for local development) [supabase cli](https://supabase.com/docs/guides/local-development/cli/getting-started)
+- Deno (for running tests) [deno](https://docs.deno.com/runtime/getting_started/installation/)
 
 ### Local Development
 

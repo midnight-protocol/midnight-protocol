@@ -1,0 +1,22 @@
+# Test Environment Files
+.env.test
+.env.local
+.env
+
+# Test Results
+test-results.json
+test-reports/
+coverage/
+
+# Temporary Test Data
+*.tmp
+test-data/
+temp/
+
+# IDE Files
+.vscode/
+.idea/
+
+# OS Files
+.DS_Store
+Thumbs.db
