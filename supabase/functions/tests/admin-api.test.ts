@@ -28,6 +28,47 @@
  * 
  * TODO: Additional tests to add based on available actions:
  * 
+ * ⚠️ WARNING: Database Pollution Risk Assessment for Admin Tests
+ * 
+ * CRITICAL RISK - System-Wide Modifications (affect entire system):
+ * These tests can corrupt system configuration and MUST be extremely careful:
+ * - updateSystemConfig: Modifies global system settings - MUST restore original values
+ * - updateAlertThreshold: Changes system alert thresholds - affects monitoring
+ * - bulkUserOperation: Mass updates/deletes on users - can affect real users if not filtered
+ * - deleteAllTestUsers: Mass deletion - MUST verify only test users are targeted
+ * - importPromptTemplates: Bulk imports - could overwrite production templates
+ * - importEmailTemplates: Bulk email template imports - could affect email system
+ * 
+ * HIGH RISK - Data Modification Tests (require careful cleanup):
+ * - updateUserStatus: Changes user account status (PENDING/APPROVED/REJECTED)
+ * - resolveAlert: Modifies alert statuses - ensure test alerts are isolated
+ * - createTestUsers: Creates multiple test users - must use test prefixes
+ * - createPromptTemplate: Creates prompt templates - use test-prefixed names
+ * - updatePromptTemplate: Modifies templates - only update test templates
+ * - restorePromptVersion: Reverts templates - can affect active prompts
+ * - deleteEmailInterest: Permanent deletion - only delete test records
+ * - createEmailTemplate: Creates email templates - use test categories
+ * - updateEmailTemplate: Modifies email templates - isolate test templates
+ * - restoreEmailVersion: Reverts email templates - affects email sending
+ * - sendTestEmail: Could send actual emails - MUST mock email service
+ * 
+ * MEDIUM RISK - Cache/State Modifications:
+ * - refreshMetricsCache: Modifies cached metrics - may affect dashboard displays
+ * - runPrompt: Executes prompts - may call LLM APIs and incur costs
+ * 
+ * LOW RISK - Read-Only Operations:
+ * - All get*, export*, and fetch operations are generally safe
+ * - Activity logs and metrics queries don't modify data
+ * 
+ * CRITICAL CLEANUP REQUIREMENTS FOR ADMIN TESTS:
+ * - ALWAYS filter operations to test data only (WHERE handle LIKE 'test-%')
+ * - Store original config values and restore in finally blocks
+ * - Use database snapshots before/after tests to verify no pollution
+ * - Consider read-only database user for export/fetch tests
+ * - Mock external services (email, LLM) to prevent real operations
+ * - Use testDb.createSnapshot() to verify database state unchanged
+ * - Implement rollback mechanisms for all modification operations
+ * 
  * System Health Actions (from actions/health.ts):
  * - updateAlertThreshold: Test updating alert threshold values with validation
  * - resolveAlert: Test resolving active alerts with proper status updates

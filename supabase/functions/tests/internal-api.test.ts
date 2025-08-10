@@ -25,6 +25,31 @@
  * 
  * TODO: Additional tests to add based on available actions:
  * 
+ * ⚠️ WARNING: Database Pollution Risk Assessment
+ * 
+ * HIGH RISK - Data Modification Tests (require careful cleanup):
+ * These tests modify database state and MUST properly clean up to avoid data corruption:
+ * - updateAgentName: Modifies agent_profiles table - ensure test uses test-prefixed agent names
+ * - initializeOnboardingChat: Creates onboarding_conversations and messages - must delete after test
+ * - sendOnboardingMessage: Creates messages and updates personal_stories - requires full cleanup
+ * - completeOnboarding: Updates user status to PENDING - must revert status changes
+ * - saveAgentPersonalization: Upserts agent_profiles - must delete test profiles
+ * - updateUserTimezone: Updates users table timezone - must restore original value
+ * - submitEmailInterest: Inserts email_interests records - use test emails and cleanup
+ * 
+ * MEDIUM RISK - State Modification Tests:
+ * - Personal story updates may affect matching algorithms if not isolated
+ * 
+ * LOW RISK - Read-Only Tests:
+ * - getDashboardData, getUserInternalId, getNetworkingStats, getUserConversations
+ * - getOnboardingData, getPersonalStory (read operations, minimal risk)
+ * 
+ * CLEANUP REQUIREMENTS:
+ * - Always use test-prefixed identifiers (test-username, test@example.com)
+ * - Register all created records with testDb.registerTestData() for automatic cleanup
+ * - Use try/finally blocks to ensure cleanup even on test failure
+ * - Consider using database transactions where possible for atomic rollback
+ * 
  * User Actions (from actions/users.ts):
  * - getDashboardData: Test fetching complete dashboard data with agent profile, personal story, onboarding status
  * - updateAgentName: Test updating agent profile name with valid/invalid parameters
