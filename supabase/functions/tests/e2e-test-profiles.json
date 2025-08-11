@@ -14,6 +14,19 @@
         "namePrefix": "DevAgent",
         "communicationStyle": "warm_conversational"
       },
+      "persona": {
+        "name": "Alex Chen",
+        "role": "Senior Full-Stack Developer",
+        "background": "10 years of experience building enterprise SaaS applications, currently leading a team of 5 engineers at a fintech startup",
+        "personality": "analytical",
+        "currentProject": "Migrating a monolithic application to microservices architecture",
+        "expertise": ["TypeScript", "React", "Node.js", "AWS", "DevOps", "System Architecture"],
+        "goals": [
+          "Reduce technical debt while maintaining feature velocity",
+          "Build scalable and maintainable systems",
+          "Mentor junior developers and share knowledge"
+        ]
+      },
       "onboarding": {
         "messages": [
           "I'm a software developer with 10 years of experience",
@@ -33,6 +46,19 @@
         "namePrefix": "DesignAgent",
         "communicationStyle": "friendly_enthusiastic"
       },
+      "persona": {
+        "name": "Jordan Rivera",
+        "role": "Senior UX/UI Designer",
+        "background": "8 years designing for enterprise and consumer products, specializing in design systems and accessibility",
+        "personality": "creative",
+        "currentProject": "Building a comprehensive design language system for a product suite",
+        "expertise": ["Figma", "Design Systems", "User Research", "Accessibility", "CSS", "Design Ops"],
+        "goals": [
+          "Create inclusive and accessible design solutions",
+          "Bridge the gap between design and engineering",
+          "Establish design best practices across organizations"
+        ]
+      },
       "onboarding": {
         "messages": [
           "I'm a UX/UI designer passionate about creating beautiful experiences",
@@ -51,6 +77,19 @@
       "agent": {
         "namePrefix": "FounderAgent",
         "communicationStyle": "professional_concise"
+      },
+      "persona": {
+        "name": "Sam Martinez",
+        "role": "Startup Founder & CEO",
+        "background": "Serial entrepreneur with one successful exit, now building a B2B SaaS startup in the project management space",
+        "personality": "driven",
+        "currentProject": "Validating an AI-powered workflow automation platform for project management",
+        "expertise": ["Product Management", "Go-to-Market Strategy", "Fundraising", "Business Development", "Team Building"],
+        "goals": [
+          "Find the right technical co-founder",
+          "Achieve product-market fit within 6 months",
+          "Raise seed funding and scale the team"
+        ]
       },
       "onboarding": {
         "messages": [

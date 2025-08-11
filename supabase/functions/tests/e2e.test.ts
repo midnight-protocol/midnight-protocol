@@ -59,16 +59,38 @@ import { testFramework } from "./test-framework.ts";
 import { TestAuth } from "./test-auth.ts";
 import { TestClient } from "./test-client.ts";
 import { TestDatabase } from "./test-database.ts";
+import { 
+  generateOnboardingResponse, 
+  validatePersona,
+  extractConversationInsights 
+} from "./test-llm-helper.ts";
+import { TestLogger } from "./test-logger.ts";
+import { load } from "jsr:@std/dotenv";
+
+// Load environment variables from .env.test if running directly
+if (import.meta.main) {
+  try {
+    await load({ envPath: '.env.test', export: true });
+    console.log("✅ Loaded environment variables from .env.test");
+  } catch (error) {
+    console.warn("⚠️ Could not load .env.test file, using existing environment");
+  }
+}
 
 // Initialize test utilities
 const testAuth = new TestAuth();
 const testClient = new TestClient();
 const testDb = new TestDatabase();
+const logger = new TestLogger();
 
 // Load test profiles from external file
 const testProfilesPath = "./e2e-test-profiles.json";
 const testProfilesContent = await Deno.readTextFile(testProfilesPath);
 const testProfiles = JSON.parse(testProfilesContent);
+
+// Check if we have an OpenRouter API key for dynamic responses
+const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") || Deno.env.get("TEST_OPENROUTER_API_KEY");
+const USE_DYNAMIC_RESPONSES = !!OPENROUTER_API_KEY;
 
 // Test users for the journey
 let adminUser: any;
@@ -84,6 +106,8 @@ const createdRecords = {
 
 // Global setup for E2E tests
 testFramework.setGlobalSetup(async () => {
+  logger.startPhase("Global Setup");
+  logger.info("Setting up E2E test environment");
   console.log("🚀 Setting up E2E test environment...");
 
   try {
@@ -106,6 +130,8 @@ testFramework.setGlobalSetup(async () => {
 
 // Global teardown
 testFramework.setGlobalTeardown(async () => {
+  logger.startPhase("Global Teardown");
+  logger.info("Cleaning up E2E test data");
   console.log("🧹 Cleaning up E2E test data...");
 
   try {
@@ -119,7 +145,15 @@ testFramework.setGlobalTeardown(async () => {
 
     // Clean up any other test data
     await testDb.cleanupTestData();
-
+    
+    logger.success("E2E test cleanup complete");
+    logger.endPhase("Global Teardown");
+    
+    // Save logs to files
+    const logFile = await logger.saveToFile();
+    const reportFile = await logger.saveFormattedReport();
+    console.log(`\n📊 Test logs saved to: ${logFile}`);
+    console.log(`📄 Test report saved to: ${reportFile}`);
     console.log("✅ E2E test cleanup complete");
   } catch (error) {
     console.error("❌ Error during E2E test cleanup:", error);
@@ -133,6 +167,12 @@ testFramework
   .test(
     "should complete full user journey from signup to morning report",
     async (ctx) => {
+      // Log whether we're using dynamic responses
+      if (USE_DYNAMIC_RESPONSES) {
+        ctx.log(`🤖 Using dynamic LLM responses for onboarding (API key found)`);
+      } else {
+        ctx.log(`📝 Using static test messages for onboarding (no API key)`);
+      }
       ctx.log("🚀 Starting complete user journey test...");
       
       // Select which profile to test (can be controlled via environment variable)
@@ -194,6 +234,12 @@ testFramework
       
       // Log the actual status for debugging
       ctx.log(`User created with status: ${dbUser.status}`);
+      logger.debug("Database user verified", {
+        dbUserId: dbUser.id,
+        handle: dbUser.handle,
+        status: dbUser.status,
+        createdAt: dbUser.created_at
+      });
       
       // Store the database user ID for later phases (it's already in journeyUser.databaseId from createTestUser)
       
@@ -247,6 +293,12 @@ testFramework
       createdRecords.agentProfiles.push(agentProfileId);
       
       ctx.log(`✅ Agent personalization saved: ${agentName} with style: ${communicationStyle}`);
+      logger.success("Agent personalization saved", {
+        agentName,
+        communicationStyle,
+        agentProfileId,
+        userId: journeyUser.databaseId
+      });
       
       // Step 2: Initialize onboarding chat
       ctx.log("Step 2.2: Initializing onboarding chat...");
@@ -283,6 +335,12 @@ testFramework
       ctx.assertExists(initialMessage.content, "Message should have content");
       
       ctx.log(`Chat initialized with conversation ID: ${conversationId}`);
+      logger.info("Onboarding chat initialized", {
+        conversationId,
+        initialMessageCount: chatData.messages.length,
+        firstMessage: chatData.messages[0]?.content?.substring(0, 100) + "...",
+        turnCount: chatData.turnCount || 0
+      });
       
       // Step 3: Send onboarding messages
       ctx.log("Step 2.3: Sending onboarding messages...");
@@ -292,9 +350,71 @@ testFramework
       let essenceData = chatData.essenceData;
       let showCompleteButton = false;
       
-      // Send each message from the profile
-      for (const [index, message] of profileData.onboarding.messages.entries()) {
-        ctx.log(`Sending message ${index + 1}/${profileData.onboarding.messages.length}: "${message.substring(0, 50)}..."`);
+      // Build conversation history for dynamic responses
+      const conversationHistory: Array<{ role: "agent" | "user"; content: string }> = 
+        currentMessages.map((msg: any) => ({
+          role: msg.role,
+          content: msg.content
+        }));
+      
+      // Validate persona if we're using dynamic responses
+      const persona = profileData.persona;
+      if (USE_DYNAMIC_RESPONSES && persona) {
+        const isValidPersona = validatePersona(persona);
+        if (!isValidPersona) {
+          ctx.log("⚠️ Invalid persona data, falling back to static messages");
+        }
+      }
+      
+      // Determine how many messages to send (5-6 for good conversation depth)
+      const messageCount = USE_DYNAMIC_RESPONSES ? 6 : profileData.onboarding.messages.length;
+      
+      // Log message generation configuration
+      logger.debug("Message generation configuration", {
+        useDynamic: USE_DYNAMIC_RESPONSES,
+        hasPersona: !!persona,
+        personaValid: validatePersona(persona),
+        messageCount
+      });
+      
+      // Send messages - either dynamic or from profile
+      let actualMessagesSent = 0;
+      for (let index = 0; index < messageCount; index++) {
+        let message: string;
+        
+        if (USE_DYNAMIC_RESPONSES && persona && validatePersona(persona)) {
+          // Generate dynamic response based on persona and conversation
+          ctx.log(`Generating dynamic message ${index + 1}/${messageCount} using LLM...`);
+          logger.debug(`Generating dynamic message ${index + 1}/${messageCount}`);
+          
+          message = await generateOnboardingResponse({
+            agentName,
+            communicationStyle,
+            persona,
+            conversationHistory,
+            turnNumber: index + 1
+          }, OPENROUTER_API_KEY);
+          
+          ctx.log(`Generated message: "${message.substring(0, 60)}..."`);
+          logger.info("Dynamic message generated", {
+            messageNumber: index + 1,
+            messageLength: message.length,
+            preview: message.substring(0, 100) + "..."
+          });
+        } else {
+          // Use static messages from profile
+          if (index >= profileData.onboarding.messages.length) {
+            // If we need more messages than provided, stop
+            break;
+          }
+          message = profileData.onboarding.messages[index];
+          ctx.log(`Sending static message ${index + 1}/${messageCount}: "${message.substring(0, 50)}..."`);
+          logger.debug("Using static message", {
+            messageNumber: index + 1,
+            messageLength: message.length,
+            preview: message.substring(0, 50) + "..."
+          });
+        }
         
         const messageResponse = await testClient.callInternalApi(
           "sendOnboardingMessage",
@@ -317,12 +437,19 @@ testFramework
         ctx.assertExists(msgData.agentMessage, "Should return agent's response");
         
         // Update tracking variables
-        currentMessages.push({
-          role: "user",
+        const userMsg = {
+          role: "user" as const,
           content: message,
           timestamp: new Date().toISOString()
-        });
+        };
+        
+        currentMessages.push(userMsg);
         currentMessages.push(msgData.agentMessage);
+        
+        // Update conversation history for next dynamic response
+        conversationHistory.push({ role: "user", content: message });
+        conversationHistory.push({ role: "agent", content: msgData.agentMessage.content });
+        
         turnCount++;
         
         if (msgData.essenceData) {
@@ -338,9 +465,11 @@ testFramework
         ctx.assertEquals(agentResponse.role, "agent", "Response should be from agent");
         ctx.assertExists(agentResponse.content, "Agent should provide a response");
         ctx.assert(agentResponse.content.length > 10, "Agent response should be meaningful");
+        
+        actualMessagesSent++;
       }
       
-      ctx.log(`✅ Sent ${profileData.onboarding.messages.length} messages, received ${turnCount} turns total`);
+      ctx.log(`✅ Sent ${actualMessagesSent} messages, received ${turnCount} turns total`);
       
       // Verify personal story is being built
       ctx.assert(
@@ -381,7 +510,10 @@ testFramework
       ctx.log(`✅ Phase 2 complete: Onboarding finished with ${turnCount} conversation turns`);
 
       // Phase 3: Admin Approval
+      logger.startPhase("Phase 3: Admin Approval");
       ctx.log("Phase 3: Testing admin approval workflow");
+      logger.info("Admin approval workflow (not yet implemented)");
+      logger.endPhase("Phase 3: Admin Approval");
       // TODO: Implement approval flow test
       // - Verify user status is PENDING
       // - Admin fetches pending users
@@ -389,7 +521,10 @@ testFramework
       // - Verify status change to APPROVED
 
       // Phase 4: Matchmaking
+      logger.startPhase("Phase 4: Matchmaking");
       ctx.log("Phase 4: Testing matchmaking process");
+      logger.info("Matchmaking process (not yet implemented)");
+      logger.endPhase("Phase 4: Matchmaking");
       // TODO: Implement matchmaking test
       // - Trigger match analysis
       // - Verify match creation
@@ -397,7 +532,10 @@ testFramework
       // - Verify conversation quality
 
       // Phase 5: Morning Reports
+      logger.startPhase("Phase 5: Morning Reports");
       ctx.log("Phase 5: Testing morning report generation");
+      logger.info("Morning report generation (not yet implemented)");
+      logger.endPhase("Phase 5: Morning Reports");
       // TODO: Implement morning report test
       // - Generate morning reports
       // - Verify report contains matches
@@ -411,6 +549,9 @@ testFramework
 // Run tests if this file is executed directly
 if (import.meta.main) {
   const results = await testFramework.run();
+  
+  // Print the formatted report
+  console.log("\n" + logger.getFormattedReport());
 
   if (results.failed > 0) {
     Deno.exit(1);
