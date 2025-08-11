@@ -454,11 +454,26 @@ testFramework
         
         if (msgData.essenceData) {
           essenceData = msgData.essenceData;
+          // Log essence data update
+          logger.log("info", "Essence data updated", {
+            turnNumber: turnCount,
+            essence: essenceData,
+            messageIndex: actualMessagesSent
+          });
         }
         
         if (msgData.showCompleteButton) {
           showCompleteButton = true;
         }
+        
+        // Log the full message exchange with essence
+        logger.log("info", `Message exchange ${actualMessagesSent + 1}`, {
+          userMessage: message,
+          agentResponse: msgData.agentMessage.content,
+          essenceIncluded: !!msgData.essenceData,
+          turnCount: turnCount,
+          showCompleteButton: msgData.showCompleteButton
+        });
         
         // Verify the agent responded appropriately
         const agentResponse = msgData.agentMessage;
@@ -470,6 +485,14 @@ testFramework
       }
       
       ctx.log(`✅ Sent ${actualMessagesSent} messages, received ${turnCount} turns total`);
+      
+      // Log final essence data state
+      logger.log("info", "Final essence data after onboarding messages", {
+        essenceData: essenceData,
+        totalTurns: turnCount,
+        messagesSent: actualMessagesSent,
+        hasEssence: !!essenceData
+      });
       
       // Verify personal story is being built
       ctx.assert(
@@ -507,7 +530,32 @@ testFramework
         "Personal story narrative should be substantial"
       );
       
+      // Log the complete personal story and essence data
+      logger.log("info", "Personal story created", {
+        storyId: personalStory.id,
+        narrativeLength: personalStory.narrative?.length,
+        currentFocus: personalStory.current_focus,
+        seekingConnections: personalStory.seeking_connections,
+        offeringExpertise: personalStory.offering_expertise,
+        essenceData: essenceData,
+        conversationTurns: turnCount
+      });
+      
       ctx.log(`✅ Phase 2 complete: Onboarding finished with ${turnCount} conversation turns`);
+      
+      // Log comprehensive onboarding phase summary
+      logger.log("info", "Onboarding phase complete - Summary", {
+        phase: "onboarding",
+        totalMessages: actualMessagesSent,
+        totalTurns: turnCount,
+        dynamicMessagesEnabled: USE_DYNAMIC_RESPONSES,
+        personalStoryId: personalStory.id,
+        storyNarrativeLength: personalStory.narrative?.length,
+        hasEssenceData: !!essenceData,
+        conversationId: conversationId,
+        agentProfileId: agentProfileId,
+        completionStatus: "success"
+      });
 
       // Phase 3: Admin Approval
       logger.startPhase("Phase 3: Admin Approval");
