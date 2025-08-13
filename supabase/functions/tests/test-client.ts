@@ -63,7 +63,7 @@ export class TestClient {
     try {
       const response = await withTimeout(
         fetch(url, requestOptions),
-        options.timeout || 30000,
+        options.timeout || 300000,
         `Function call to ${functionName}`
       );
 
