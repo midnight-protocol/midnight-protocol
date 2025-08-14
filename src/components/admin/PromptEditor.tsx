@@ -60,6 +60,7 @@ interface PromptVersion {
   version: number;
   template_text: string;
   variables: any; // Will be cast to string[] when used
+  json_schema?: any;
   change_notes: string | null;
   created_at: string;
 }
@@ -1639,8 +1640,18 @@ export const PromptEditor = () => {
                             <summary className="text-terminal-yellow text-xs">
                               View template
                             </summary>
-                            <pre className="text-terminal-text-muted text-xs mt-2 p-2 bg-terminal-bg rounded overflow-x-auto">
+                            <pre className="text-terminal-text-muted text-xs mt-2 p-2 bg-terminal-bg rounded overflow-x-auto text-left">
                               {version.template_text}
+                            </pre>
+                            <pre className="text-terminal-text-muted text-xs mt-2 p-2 bg-terminal-bg rounded overflow-x-auto text-left">
+                              JSON SCHEMA:
+                              {version.json_schema
+                                ? version.json_schema.toString()
+                                : "No JSON schema"}
+                            </pre>
+                            <pre className="text-terminal-text-muted text-xs mt-2 p-2 bg-terminal-bg rounded overflow-x-auto text-left">
+                              VARIABLES:
+                              {JSON.stringify(version.variables, null, 2)}
                             </pre>
                           </details>
                         </div>

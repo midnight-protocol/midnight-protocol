@@ -33,9 +33,9 @@ export interface TokenCountResult {
 export interface LLMCallLogData {
   requestId?: string;
   model: string;
-  methodType: 'chat_completion' | 'stream_completion';
+  methodType: "chat_completion" | "stream_completion";
   inputMessages: ChatMessage[];
-  inputParams: Omit<ChatCompletionRequest, 'messages' | 'model'>;
+  inputParams: Omit<ChatCompletionRequest, "messages" | "model">;
   edgeFunction?: string;
   userId?: string;
 }
@@ -48,7 +48,7 @@ export interface LLMCallLogResult {
   totalTokens?: number;
   costUsd?: number;
   responseTimeMs?: number;
-  status: 'completed' | 'failed';
+  status: "completed" | "failed";
   errorMessage?: string;
   httpStatusCode?: number;
 }
@@ -71,9 +71,9 @@ export class LLMService {
     try {
       const supabase = createServiceRoleClient();
       const { inputParams, ...otherData } = logData;
-      
+
       const { data, error } = await supabase
-        .from('llm_call_logs')
+        .from("llm_call_logs")
         .insert({
           request_id: logData.requestId,
           model: logData.model,
@@ -82,32 +82,35 @@ export class LLMService {
           input_params: inputParams,
           edge_function: logData.edgeFunction,
           user_id: logData.userId,
-          status: 'started',
-          started_at: new Date().toISOString()
+          status: "started",
+          started_at: new Date().toISOString(),
         })
-        .select('id')
+        .select("id")
         .single();
 
       if (error) {
-        console.error('Failed to start LLM call log:', error);
+        console.error("Failed to start LLM call log:", error);
         return null;
       }
 
       return data?.id || null;
     } catch (error) {
-      console.error('Error starting LLM call log:', error);
+      console.error("Error starting LLM call log:", error);
       return null;
     }
   }
 
-  private async completeLog(logId: string, result: LLMCallLogResult): Promise<void> {
+  private async completeLog(
+    logId: string,
+    result: LLMCallLogResult
+  ): Promise<void> {
     if (!logId) return;
 
     try {
       const supabase = createServiceRoleClient();
-      
+
       const { error } = await supabase
-        .from('llm_call_logs')
+        .from("llm_call_logs")
         .update({
           output_response: result.outputResponse,
           completion_text: result.completionText,
@@ -119,30 +122,34 @@ export class LLMService {
           status: result.status,
           error_message: result.errorMessage,
           http_status_code: result.httpStatusCode,
-          completed_at: new Date().toISOString()
+          completed_at: new Date().toISOString(),
         })
-        .eq('id', logId);
+        .eq("id", logId);
 
       if (error) {
-        console.error('Failed to complete LLM call log:', error);
+        console.error("Failed to complete LLM call log:", error);
       }
     } catch (error) {
-      console.error('Error completing LLM call log:', error);
+      console.error("Error completing LLM call log:", error);
     }
   }
 
-  private extractTokenUsage(response: any): { promptTokens?: number; completionTokens?: number; totalTokens?: number } {
+  private extractTokenUsage(response: any): {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  } {
     try {
       const usage = response?.usage;
       if (usage) {
         return {
           promptTokens: usage.prompt_tokens,
           completionTokens: usage.completion_tokens,
-          totalTokens: usage.total_tokens
+          totalTokens: usage.total_tokens,
         };
       }
     } catch (error) {
-      console.error('Error extracting token usage:', error);
+      console.error("Error extracting token usage:", error);
     }
     return {};
   }
@@ -151,7 +158,7 @@ export class LLMService {
     try {
       return response?.choices?.[0]?.message?.content;
     } catch (error) {
-      console.error('Error extracting completion text:', error);
+      console.error("Error extracting completion text:", error);
       return undefined;
     }
   }
@@ -163,7 +170,7 @@ export class LLMService {
       const avgCostPer1kTokens = 0.01; // $0.01 per 1K tokens as rough estimate
       return (tokens / 1000) * avgCostPer1kTokens;
     } catch (error) {
-      console.error('Error calculating cost:', error);
+      console.error("Error calculating cost:", error);
       return undefined;
     }
   }
@@ -199,12 +206,12 @@ export class LLMService {
     }
 
     const startTime = Date.now();
-    
+
     // Start logging
     const logData: LLMCallLogData = {
       requestId: options?.requestId,
       model: request.model,
-      methodType: 'chat_completion',
+      methodType: "chat_completion",
       inputMessages: request.messages,
       inputParams: {
         max_tokens: request.max_tokens,
@@ -217,7 +224,17 @@ export class LLMService {
       userId: options?.userId,
     };
 
+    // remove id from any messages
+    request.messages = request.messages.map((message) => {
+      if (message.id) {
+        delete message.id;
+      }
+      return message;
+    });
+
     const logId = await this.startLog(logData);
+
+    console.log("request", request);
 
     try {
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
@@ -236,8 +253,10 @@ export class LLMService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error?.message || "Unknown error";
-        let detailedError = `OpenRouter API error: ${response.statusText}`;
+        const errorMessage = errorData.error
+          ? JSON.stringify(errorData.error)
+          : "Unknown error";
+        let detailedError = `OpenRouter API error: ${response.statusText} - ${errorMessage}`;
 
         switch (response.status) {
           case 400:
@@ -272,13 +291,13 @@ export class LLMService {
               " - No available model provider meets routing requirements";
             break;
           default:
-            detailedError += ` - ${errorMessage}`;
+            detailedError += ``;
         }
 
         // Log the error
         if (logId) {
           await this.completeLog(logId, {
-            status: 'failed',
+            status: "failed",
             errorMessage: detailedError,
             httpStatusCode: response.status,
             responseTimeMs: responseTime,
@@ -289,11 +308,13 @@ export class LLMService {
       }
 
       const responseData = await response.json();
-      
+
       // Extract usage data and completion text
       const tokenUsage = this.extractTokenUsage(responseData);
       const completionText = this.extractCompletionText(responseData);
-      const cost = tokenUsage.totalTokens ? this.calculateCost(tokenUsage.totalTokens, request.model) : undefined;
+      const cost = tokenUsage.totalTokens
+        ? this.calculateCost(tokenUsage.totalTokens, request.model)
+        : undefined;
 
       // Log successful completion
       if (logId) {
@@ -305,7 +326,7 @@ export class LLMService {
           totalTokens: tokenUsage.totalTokens,
           costUsd: cost,
           responseTimeMs: responseTime,
-          status: 'completed',
+          status: "completed",
           httpStatusCode: response.status,
         });
       }
@@ -313,16 +334,17 @@ export class LLMService {
       return responseData;
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      
+
       // Log any other errors (network errors, JSON parsing, etc.)
       if (logId) {
         await this.completeLog(logId, {
-          status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          status: "failed",
+          errorMessage:
+            error instanceof Error ? error.message : "Unknown error",
           responseTimeMs: responseTime,
         });
       }
-      
+
       throw error;
     }
   }
@@ -342,12 +364,12 @@ export class LLMService {
     }
 
     const startTime = Date.now();
-    
+
     // Start logging
     const logData: LLMCallLogData = {
       requestId: options?.requestId,
       model: request.model,
-      methodType: 'stream_completion',
+      methodType: "stream_completion",
       inputMessages: request.messages,
       inputParams: {
         max_tokens: request.max_tokens,
@@ -406,7 +428,7 @@ export class LLMService {
         // Log the error
         if (logId) {
           await this.completeLog(logId, {
-            status: 'failed',
+            status: "failed",
             errorMessage: detailedError,
             httpStatusCode: response.status,
             responseTimeMs: responseTime,
@@ -420,10 +442,10 @@ export class LLMService {
       // We'll log it as completed with basic info
       if (logId) {
         await this.completeLog(logId, {
-          status: 'completed',
+          status: "completed",
           httpStatusCode: response.status,
           responseTimeMs: responseTime,
-          completionText: '[Streaming Response - Full text not captured]',
+          completionText: "[Streaming Response - Full text not captured]",
         });
       }
 
@@ -437,16 +459,17 @@ export class LLMService {
       });
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      
+
       // Log any other errors
       if (logId) {
         await this.completeLog(logId, {
-          status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          status: "failed",
+          errorMessage:
+            error instanceof Error ? error.message : "Unknown error",
           responseTimeMs: responseTime,
         });
       }
-      
+
       throw error;
     }
   }

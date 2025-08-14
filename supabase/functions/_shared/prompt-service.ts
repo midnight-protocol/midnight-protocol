@@ -211,6 +211,7 @@ export class PromptService {
         type: "json_schema",
         json_schema: {
           name: "response",
+          strict: true,
           schema: JSON.parse(template.json_schema),
         },
       };

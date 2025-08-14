@@ -17,12 +17,10 @@ export async function getAvailableModels(
     const priorityModels = [
       "google/gemini-2.5-flash",
       "google/gemini-2.5-flash-lite-preview-06-17",
-      "anthropic/claude-sonnet-4",
-      "anthropic/claude-3.5-sonnet",
-      "openai/gpt-4o",
-      "openai/gpt-4o-mini",
-      "openai/o3-mini",
-      "openai/gpt-4.1-mini",
+      "openai/gpt-5",
+      "openai/gpt-5-chat",
+      "openai/gpt-5-mini",
+      "openai/gpt-5-nano",
     ];
 
     // Filter and sort models
