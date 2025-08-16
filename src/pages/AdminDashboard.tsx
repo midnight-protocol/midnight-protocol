@@ -13,6 +13,7 @@ import {
   BarChart3,
   FileCode2,
   Mail,
+  FlaskConical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminDashboardLoadingSkeleton } from "@/components/skeletons/AdminDashboardSkeletons";
@@ -66,6 +67,11 @@ const EmailInterestsPanel = lazy(() =>
 const EmailTemplateEditor = lazy(() =>
   import("@/components/admin/EmailTemplateEditor").then((m) => ({
     default: m.default,
+  }))
+);
+const E2ETestPanel = lazy(() =>
+  import("@/components/admin/E2ETestPanel").then((m) => ({
+    default: m.E2ETestPanel,
   }))
 );
 
@@ -149,7 +155,7 @@ const AdminDashboard = () => {
             onValueChange={setActiveTab}
             className="space-y-4 md:space-y-6"
           >
-            <TabsList className="w-full overflow-x-auto overflow-y-hidden flex md:grid md:grid-cols-4 lg:grid-cols-8 xl:grid-cols-9 bg-terminal-bg/30 border border-terminal-green/30">
+            <TabsList className="w-full overflow-x-auto overflow-y-hidden flex md:grid md:grid-cols-4 lg:grid-cols-8 xl:grid-cols-10 bg-terminal-bg/30 border border-terminal-green/30">
               <TabsTrigger
                 value="overview"
                 className="data-[state=active]:bg-terminal-green data-[state=active]:text-terminal-bg flex-shrink-0 text-xs sm:text-sm"
@@ -222,6 +228,14 @@ const AdminDashboard = () => {
                 <span className="hidden sm:inline">Email Tmpls</span>
                 <span className="sm:hidden">Email Tmpls</span>
               </TabsTrigger>
+              <TabsTrigger
+                value="e2e-tests"
+                className="data-[state=active]:bg-terminal-green data-[state=active]:text-terminal-bg flex-shrink-0 text-xs sm:text-sm"
+              >
+                <FlaskConical className="w-4 h-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">E2E Tests</span>
+                <span className="sm:hidden">Tests</span>
+              </TabsTrigger>
             </TabsList>
 
             {/* Overview Tab */}
@@ -280,6 +294,12 @@ const AdminDashboard = () => {
             <TabsContent value="email-templates">
               <Suspense fallback={<AdminDashboardLoadingSkeleton />}>
                 <EmailTemplateEditor />
+              </Suspense>
+            </TabsContent>
+
+            <TabsContent value="e2e-tests">
+              <Suspense fallback={<AdminDashboardLoadingSkeleton />}>
+                <E2ETestPanel />
               </Suspense>
             </TabsContent>
           </Tabs>
