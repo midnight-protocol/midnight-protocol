@@ -231,7 +231,6 @@ export async function sendOnboardingMessage(
         agentName: agentName,
         communicationStyle: communicationStyle,
       },
-      temperature: 0.7,
       maxTokens: 1500,
       additionalMessages: allMessages,
     });

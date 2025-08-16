@@ -284,7 +284,6 @@ export async function createTestUsers(
             input_data: input_data || "no guidance, random generation",
           },
           maxTokens: 2000,
-          temperature: 0.7,
         },
         {
           edgeFunction: "admin-api/createTestUsers",
